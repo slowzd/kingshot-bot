@@ -37,7 +37,7 @@ Projektet indeholder en GitHub Actions workflow i [.github/workflows/daily-leade
    - `DISCORD_CHANNEL_ID`: ID'et på den Discord-tekstkanal, hvor beskeden skal sendes.
    - `KINGDOM`: Det kingdom-nummer der skal hentes (f.eks. `2426`).
    - `STRATFORGE_SESSION_TOKEN`: Din session cookie-værdi fra StratForge (`__Secure-better-auth.session_token`).
-4. Under fanen **Actions** på GitHub kan du teste det med det samme ved at vælge workflowet og trykke **Run workflow**.
+4. Sørg for, at botten har **View Channel** og **Send Messages** i den valgte kanal. Kanalens egne tilladelser kan tilsidesætte bot-rollens standardtilladelser.
+5. Under fanen **Actions** på GitHub kan du teste det med det samme ved at vælge workflowet og trykke **Run workflow**.
 
 Tidspunktet kan justeres via cron-udtrykket i [.github/workflows/daily-leaderboard.yml](.github/workflows/daily-leaderboard.yml) (sat til `0 12 * * *` som standard, hvilket svarer til kl. 12:00 UTC).
-

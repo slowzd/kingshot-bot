@@ -69,7 +69,17 @@ if (targetMessage) {
   await targetMessage.edit(message);
   console.log(`Updated existing message (ID: ${targetMessage.id}).`);
 } else {
-  const sent = await channel.send(message);
+  let sent: Message;
+  try {
+    sent = await channel.send(message);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === 50013) {
+      throw new Error(
+        `Discord denied permission to send in channel ${channelId}. Grant the bot View Channel and Send Messages permissions for that channel, then rerun the workflow.`,
+      );
+    }
+    throw error;
+  }
   console.log(`Sent new message (ID: ${sent.id}).`);
 }
 
