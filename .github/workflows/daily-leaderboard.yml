@@ -1,0 +1,38 @@
+name: Daily StratForge Leaderboard Broadcast
+
+on:
+  schedule:
+    # Kører hver dag kl. 12:00 UTC (14:00 dansk sommertid / 13:00 normaltid)
+    # Du kan tilpasse klokkeslættet her (cron format: minut time * * *)
+    - cron: '0 12 * * *'
+  # Giver dig mulighed for at trykke "Run workflow" manuelt fra GitHub Actions fanebladet
+  workflow_dispatch:
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers and OS dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Leaderboard Broadcast
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          KINGDOM: ${{ secrets.KINGDOM || '2426' }}
+          STRATFORGE_SESSION_TOKEN: ${{ secrets.STRATFORGE_SESSION_TOKEN }}
+          HEADLESS: "true"
+        run: npm run broadcast
