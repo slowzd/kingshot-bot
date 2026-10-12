@@ -2,9 +2,10 @@ name: Daily StratForge Leaderboard Broadcast
 
 on:
   schedule:
-    # 23:20 dansk sommertid (CEST / UTC+2) svarer til 21:20 UTC
-    # Format: minut time dag måned ugedag (i UTC)
+    # 23:20 dansk tid (CEST / UTC+2 = 21:20 UTC)
     - cron: '20 21 * * *'
+    # 23:30 dansk tid (CEST / UTC+2 = 21:30 UTC)
+    - cron: '30 21 * * *'
   workflow_dispatch:
 
 jobs:
