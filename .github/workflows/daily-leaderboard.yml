@@ -2,10 +2,9 @@ name: Daily StratForge Leaderboard Broadcast
 
 on:
   schedule:
-    # Kører hver dag kl. 12:00 UTC (14:00 dansk sommertid / 13:00 normaltid)
-    # Du kan tilpasse klokkeslættet her (cron format: minut time * * *)
-    - cron: '0 12 * * *'
-  # Giver dig mulighed for at trykke "Run workflow" manuelt fra GitHub Actions fanebladet
+    # 23:20 dansk sommertid (CEST / UTC+2) svarer til 21:20 UTC
+    # Format: minut time dag måned ugedag (i UTC)
+    - cron: '20 21 * * *'
   workflow_dispatch:
 
 jobs:

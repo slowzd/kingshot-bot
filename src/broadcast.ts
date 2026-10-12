@@ -1,16 +1,17 @@
 import "dotenv/config";
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, Message } from "discord.js";
 import { collect } from "./scraper.js";
 
 const token = process.env.DISCORD_TOKEN;
 const channelId = process.env.DISCORD_CHANNEL_ID;
+const messageId = process.env.DISCORD_MESSAGE_ID?.trim();
 const kingdom = Number(process.env.KINGDOM || 2426);
 
 if (!token || !channelId) {
   throw new Error("DISCORD_TOKEN and DISCORD_CHANNEL_ID must be set in environment variables.");
 }
 
-console.log(`Starting scheduled broadcast for Kingdom ${kingdom} to channel ${channelId}...`);
+console.log(`Starting broadcast for Kingdom ${kingdom} to channel ${channelId}...`);
 
 const result = await collect(kingdom);
 
@@ -33,7 +34,8 @@ const allianceLines = topAlliances.map(
     `#${r.displayRank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
 );
 
-const message = `**Daily Update — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}`;
+const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
+const message = `**Daily Update — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -44,10 +46,32 @@ if (!channel || !("send" in channel)) {
   throw new Error(`Channel ${channelId} not found or is not a text channel.`);
 }
 
-await channel.send({
-  content: message,
-});
+let targetMessage: Message | null = null;
 
-console.log("Message successfully posted to Discord.");
+if (messageId) {
+  try {
+    targetMessage = await channel.messages.fetch(messageId);
+  } catch {
+    console.warn(`Could not fetch message ${messageId}, looking for previous bot message...`);
+  }
+}
+
+if (!targetMessage) {
+  // Find seneste besked sendt af botten i kanalen for at redigere i stedet for at spamme
+  const recentMessages = await channel.messages.fetch({ limit: 20 });
+  const botMessage = recentMessages.find((m) => m.author.id === client.user?.id);
+  if (botMessage) {
+    targetMessage = botMessage;
+  }
+}
+
+if (targetMessage) {
+  await targetMessage.edit(message);
+  console.log(`Updated existing message (ID: ${targetMessage.id}).`);
+} else {
+  const sent = await channel.send(message);
+  console.log(`Sent new message (ID: ${sent.id}).`);
+}
+
 await client.destroy();
 process.exit(0);
