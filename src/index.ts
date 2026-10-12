@@ -5,10 +5,7 @@ import {
   REST,
   Routes,
   SlashCommandBuilder,
-  AttachmentBuilder,
 } from "discord.js";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { collect } from "./scraper.js";
 
 const token = process.env.DISCORD_TOKEN;
@@ -52,47 +49,34 @@ client.on("interactionCreate", async (interaction) => {
   try {
     await interaction.deferReply();
     const kingdomNumber = interaction.options.getInteger("kingdom") ?? kingdom;
-    const url = `https://stratforge.tools/k/${kingdomNumber}`;
     const result = await collect(kingdomNumber);
-    await mkdir("snapshots", { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const topAlliances = [...result.rows]
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, 10);
-    const lines = [
-      `StratForge Kingdom ${kingdomNumber} — Alliance listing`,
-      `Retrieved: ${new Date().toISOString()}`,
-      `Source: ${url}`,
-      "Only rows available to this session; missing power values are not zero.",
-      "",
-      ...topAlliances.map(
-        (r) =>
-          `#${r.rank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
-      ),
-    ];
+
     if (!result.rows.length) {
-      const diagnostic = path.join("snapshots", `diagnostic-${timestamp}.txt`);
-      await writeFile(
-        diagnostic,
-        `URL: ${url}\nTITLE: ${result.title}\nSECTION:\n${result.section}`,
-        "utf8",
-      );
       await interaction.editReply(
-        `StratForge loaded for Kingdom ${kingdomNumber}, but no alliance rows could be reliably extracted. Diagnostic saved: ${diagnostic}. The site may have changed or require login.`,
+        `StratForge loaded for Kingdom ${kingdomNumber}, but no alliance rows could be reliably extracted. The site may have changed or require login.`,
       );
       return;
     }
-    const filename = path.join(
-      "snapshots",
-      `kingdom-${kingdomNumber}-${timestamp}.txt`,
+
+    // Sorter alliancerne efter total Power (højeste først) og tildel nye ranks 1..N
+    const sortedAlliances = [...result.rows]
+      .sort((a, b) => b.powerValue - a.powerValue || b.combatPowerValue - a.combatPowerValue)
+      .map((alliance, index) => ({
+        ...alliance,
+        displayRank: index + 1,
+      }));
+
+    const topAlliances = sortedAlliances.slice(0, 10);
+    const allianceLines = topAlliances.map(
+      (r) =>
+        `#${r.displayRank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
     );
-    await writeFile(filename, lines.join("\n"), "utf8");
-    const preview = lines.slice(5).join("\n");
+
+    const message = `**Kingdom ${kingdomNumber} — Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}`;
+
     await interaction.editReply({
-      content: `**Kingdom ${kingdomNumber} — StratForge alliances (top 10)**\n${preview}\n\nShowing ${topAlliances.length} available alliance${topAlliances.length === 1 ? "" : "s"}; additional rows depend on your StratForge access.\nSource: ${url}`,
-      files: [new AttachmentBuilder(filename)],
+      content: message,
     });
-    console.log(`Saved ${filename}`);
   } catch (error) {
     console.error(error);
     const message = `Unable to retrieve StratForge rankings: ${error instanceof Error ? error.message : String(error)}`;

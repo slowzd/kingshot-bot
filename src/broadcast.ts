@@ -1,7 +1,5 @@
 import "dotenv/config";
-import { Client, GatewayIntentBits, AttachmentBuilder } from "discord.js";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { Client, GatewayIntentBits } from "discord.js";
 import { collect } from "./scraper.js";
 
 const token = process.env.DISCORD_TOKEN;
@@ -21,30 +19,21 @@ if (!result.rows.length) {
   process.exit(1);
 }
 
-const topAlliances = [...result.rows]
-  .sort((a, b) => a.rank - b.rank)
-  .slice(0, 10);
+// Sorter alliancerne efter total Power (højeste først) og tildel nye ranks 1..N
+const sortedAlliances = [...result.rows]
+  .sort((a, b) => b.powerValue - a.powerValue || b.combatPowerValue - a.combatPowerValue)
+  .map((alliance, index) => ({
+    ...alliance,
+    displayRank: index + 1,
+  }));
 
-const url = `https://stratforge.tools/k/${kingdom}`;
-const lines = [
-  `StratForge Kingdom ${kingdom} — Alliance listing`,
-  `Retrieved: ${new Date().toISOString()}`,
-  `Source: ${url}`,
-  "Only rows available to this session; missing power values are not zero.",
-  "",
-  ...topAlliances.map(
-    (r) =>
-      `#${r.rank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
-  ),
-];
+const topAlliances = sortedAlliances.slice(0, 10);
+const allianceLines = topAlliances.map(
+  (r) =>
+    `#${r.displayRank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
+);
 
-await mkdir("snapshots", { recursive: true });
-const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-const filename = path.join("snapshots", `kingdom-${kingdom}-${timestamp}.txt`);
-await writeFile(filename, lines.join("\n"), "utf8");
-
-const preview = lines.slice(5).join("\n");
-const message = `**Daily Update — Kingdom ${kingdom} StratForge Alliances (top 10)**\n${preview}\n\nShowing ${topAlliances.length} available alliances.\nSource: ${url}`;
+const message = `**Daily Update — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}`;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -57,7 +46,6 @@ if (!channel || !("send" in channel)) {
 
 await channel.send({
   content: message,
-  files: [new AttachmentBuilder(filename)],
 });
 
 console.log("Message successfully posted to Discord.");

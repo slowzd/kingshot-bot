@@ -7,9 +7,25 @@ export type Alliance = {
   name: string;
   tag: string;
   power: string | null;
+  powerValue: number;
   realPower: string | null;
+  combatPowerValue: number;
   members: string | null;
 };
+
+export function parsePowerValue(powerStr: string | null): number {
+  if (!powerStr || powerStr === "—") return 0;
+  const match = powerStr.replace(/,/g, "").match(/([\d.]+)\s*([KMBT])?/i);
+  if (!match) return 0;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return 0;
+  const unit = match[2]?.toUpperCase();
+  if (unit === "B") return num * 1_000_000_000;
+  if (unit === "M") return num * 1_000_000;
+  if (unit === "K") return num * 1_000;
+  if (unit === "T") return num * 1_000_000_000_000;
+  return num;
+}
 
 export async function collect(kingdomNumber: number): Promise<{
   rows: Alliance[];
@@ -107,7 +123,9 @@ export async function collect(kingdomNumber: number): Promise<{
           name,
           tag,
           power: power === "—" ? null : power,
+          powerValue: parsePowerValue(power),
           realPower: realPower === "—" ? null : realPower,
+          combatPowerValue: parsePowerValue(realPower),
           members,
         });
       }
