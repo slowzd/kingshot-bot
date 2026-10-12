@@ -31,7 +31,9 @@ if (!token || !appId || !guildId || !Number.isInteger(kingdom) || kingdom < 1) {
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 const command = new SlashCommandBuilder()
   .setName("leaderboard")
-  .setDescription("Retrieve in-game alliance rankings from BlueStacks emulator");
+  .setDescription(
+    "Retrieve in-game alliance rankings from BlueStacks emulator",
+  );
 
 await new REST({ version: "10" })
   .setToken(token)
@@ -47,10 +49,15 @@ client.once("clientReady", async () => {
   if (channelId) {
     // 1. Post initial snapshot on startup if BlueStacks has the leaderboard open
     try {
-      console.log(`Checking emulator on startup to post initial snapshot to channel ${channelId}...`);
+      console.log(
+        `Checking emulator on startup to post initial snapshot to channel ${channelId}...`,
+      );
       await postLeaderboardSnapshot(channelId, true);
     } catch (err) {
-      console.warn("Initial startup snapshot skipped:", err instanceof Error ? err.message : err);
+      console.warn(
+        "Initial startup snapshot skipped:",
+        err instanceof Error ? err.message : err,
+      );
     }
 
     // 2. Start 15-minute scheduler (:00, :15, :30, :45 of every hour)
@@ -61,7 +68,10 @@ client.once("clientReady", async () => {
 /**
  * Captures the screen, parses rankings, and sends a snapshot message to Discord.
  */
-async function postLeaderboardSnapshot(targetChannelId: string, silentIfNoScreen = false): Promise<boolean> {
+async function postLeaderboardSnapshot(
+  targetChannelId: string,
+  silentIfNoScreen = false,
+): Promise<boolean> {
   const device = getConnectedDevice();
   if (!device) {
     if (!silentIfNoScreen) {
@@ -70,13 +80,17 @@ async function postLeaderboardSnapshot(targetChannelId: string, silentIfNoScreen
     return false;
   }
 
-  const screenshotPath = path.resolve(`snapshots/bluestacks-capture-${Date.now()}.png`);
+  const screenshotPath = path.resolve(
+    `snapshots/bluestacks-capture-${Date.now()}.png`,
+  );
   await captureScreenshot(screenshotPath);
 
   const isLeaderboard = await isLeaderboardScreen(screenshotPath);
   if (!isLeaderboard) {
     if (!silentIfNoScreen) {
-      console.log("BlueStacks is open, but not currently on the Alliance Leaderboard screen.");
+      console.log(
+        "BlueStacks is open, but not currently on the Alliance Leaderboard screen.",
+      );
     }
     // Clean up non-leaderboard snapshot
     if (fs.existsSync(screenshotPath)) fs.unlink(screenshotPath, () => {});
@@ -94,12 +108,18 @@ async function postLeaderboardSnapshot(targetChannelId: string, silentIfNoScreen
     return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
   });
 
-  const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-  const messageContent = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
+  const updatedTime = new Date().toLocaleTimeString("da-DK", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+  const messageContent = `**Leaderboard — Kingdom ${kingdom} Top 7 Alliances**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime} UTC*`;
 
   const channel = await client.channels.fetch(targetChannelId);
   if (!channel || !("send" in channel)) {
-    console.error(`Channel ${targetChannelId} not found or is not a text channel.`);
+    console.error(
+      `Channel ${targetChannelId} not found or is not a text channel.`,
+    );
     return false;
   }
 
@@ -107,7 +127,9 @@ async function postLeaderboardSnapshot(targetChannelId: string, silentIfNoScreen
     const sent: Message = await channel.send({
       content: messageContent,
     });
-    console.log(`[Snapshot Sent] Posted fresh leaderboard to Discord (Message ID: ${sent.id})`);
+    console.log(
+      `[Snapshot Sent] Posted fresh leaderboard to Discord (Message ID: ${sent.id})`,
+    );
     return true;
   } catch (error) {
     console.error("Failed to post message to Discord:", error);
@@ -119,13 +141,15 @@ async function postLeaderboardSnapshot(targetChannelId: string, silentIfNoScreen
  * Calculates the next scheduled quarter-hour mark string (e.g. "00:15", "00:30", "00:45", "01:00").
  */
 function getNextScheduledTime(): string {
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const remainder = 15 - (minutes % 15);
+  const quarterHourMs = 15 * 60 * 1000;
   const nextTarget = new Date(
-    now.getTime() + (remainder * 60 - now.getSeconds()) * 1000 - now.getMilliseconds(),
+    (Math.floor(Date.now() / quarterHourMs) + 1) * quarterHourMs,
   );
-  return nextTarget.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
+  return nextTarget.toLocaleTimeString("da-DK", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
 }
 
 /**
@@ -136,22 +160,28 @@ let lastScheduledSlot = "";
 
 function start15MinuteScheduler(targetChannelId: string) {
   console.log(
-    `15-minute leaderboard scheduler active (:00, :15, :30, :45 of every hour). Next scheduled update at ~${getNextScheduledTime()}`,
+    `15-minute leaderboard scheduler active (UTC :00, :15, :30, :45). Next scheduled update at ~${getNextScheduledTime()} UTC`,
   );
 
   setInterval(async () => {
     const now = new Date();
-    const minute = now.getMinutes();
+    const minute = now.getUTCMinutes();
 
     // Trigger on every 15-minute mark: 0, 15, 30, 45
     if (minute % 15 === 0) {
-      const slotKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} ${now.getHours()}:${minute}`;
+      const slotKey = now.toISOString().slice(0, 16);
 
       if (lastScheduledSlot !== slotKey && !isRunningUpdate) {
         lastScheduledSlot = slotKey;
         isRunningUpdate = true;
-        const timeStr = now.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-        console.log(`\n[Quarter-Hour Trigger: ${timeStr}] Starting 15-minute scheduled update...`);
+        const timeStr = now.toLocaleTimeString("da-DK", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        });
+        console.log(
+          `\n[Quarter-Hour Trigger: ${timeStr} UTC] Starting 15-minute scheduled update...`,
+        );
 
         try {
           await postLeaderboardSnapshot(targetChannelId, false);
@@ -159,7 +189,7 @@ function start15MinuteScheduler(targetChannelId: string) {
           console.error("Scheduled 15-minute update failed:", err);
         } finally {
           isRunningUpdate = false;
-          console.log(`Next scheduled update at ~${getNextScheduledTime()}`);
+          console.log(`Next scheduled update at ~${getNextScheduledTime()} UTC`);
         }
       }
     }
@@ -197,8 +227,12 @@ client.on("interactionCreate", async (interaction) => {
       return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
     });
 
-    const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-    const message = `**Kingdom ${kingdom} — Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
+    const updatedTime = new Date().toLocaleTimeString("da-DK", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
+    const message = `**Kingdom ${kingdom} — Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Updated at ${updatedTime} UTC*`;
 
     await interaction.editReply({
       content: message,

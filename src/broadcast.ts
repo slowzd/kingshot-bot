@@ -36,8 +36,12 @@ const allianceLines = topAlliances.map((r) => {
   return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
 });
 
-const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
+const updatedTime = new Date().toLocaleTimeString("da-DK", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "UTC",
+});
+const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime} UTC*`;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
