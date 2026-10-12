@@ -4,7 +4,6 @@ import { collect } from "./scraper.js";
 
 const token = process.env.DISCORD_TOKEN;
 const channelId = process.env.DISCORD_CHANNEL_ID;
-const messageId = process.env.DISCORD_MESSAGE_ID?.trim();
 const kingdom = Number(process.env.KINGDOM || 2426);
 
 if (!token || !channelId) {
@@ -35,7 +34,7 @@ const allianceLines = topAlliances.map(
 );
 
 const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-const message = `**Daily Update — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
+const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -46,42 +45,18 @@ if (!channel || !("send" in channel)) {
   throw new Error(`Channel ${channelId} not found or is not a text channel.`);
 }
 
-let targetMessage: Message | null = null;
-
-if (messageId) {
-  try {
-    targetMessage = await channel.messages.fetch(messageId);
-  } catch {
-    console.warn(`Could not fetch message ${messageId}, looking for previous bot message...`);
+let sent: Message;
+try {
+  sent = await channel.send(message);
+} catch (error) {
+  if (error instanceof Error && "code" in error && error.code === 50013) {
+    throw new Error(
+      `Discord denied permission to send in channel ${channelId}. Grant the bot View Channel and Send Messages permissions for that channel, then rerun the workflow.`,
+    );
   }
+  throw error;
 }
-
-if (!targetMessage) {
-  // Find seneste besked sendt af botten i kanalen for at redigere i stedet for at spamme
-  const recentMessages = await channel.messages.fetch({ limit: 20 });
-  const botMessage = recentMessages.find((m) => m.author.id === client.user?.id);
-  if (botMessage) {
-    targetMessage = botMessage;
-  }
-}
-
-if (targetMessage) {
-  await targetMessage.edit(message);
-  console.log(`Updated existing message (ID: ${targetMessage.id}).`);
-} else {
-  let sent: Message;
-  try {
-    sent = await channel.send(message);
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === 50013) {
-      throw new Error(
-        `Discord denied permission to send in channel ${channelId}. Grant the bot View Channel and Send Messages permissions for that channel, then rerun the workflow.`,
-      );
-    }
-    throw error;
-  }
-  console.log(`Sent new message (ID: ${sent.id}).`);
-}
+console.log(`Sent new message (ID: ${sent.id}).`);
 
 await client.destroy();
 process.exit(0);
