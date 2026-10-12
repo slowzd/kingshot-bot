@@ -1,6 +1,7 @@
 import "dotenv/config";
+import fs from "node:fs";
 import { Client, GatewayIntentBits, Message } from "discord.js";
-import { collect } from "./scraper.js";
+import { getConnectedDevice, extractFromEmulator } from "./emulator.js";
 
 const token = process.env.DISCORD_TOKEN;
 const channelId = process.env.DISCORD_CHANNEL_ID;
@@ -10,31 +11,33 @@ if (!token || !channelId) {
   throw new Error("DISCORD_TOKEN and DISCORD_CHANNEL_ID must be set in environment variables.");
 }
 
-console.log(`Starting broadcast for Kingdom ${kingdom} to channel ${channelId}...`);
+console.log(`Starting broadcast for Kingdom ${kingdom} from BlueStacks emulator to channel ${channelId}...`);
 
-const result = await collect(kingdom);
-
-if (!result.rows.length) {
-  console.error("No alliance rows could be extracted from StratForge.");
+const device = getConnectedDevice();
+if (!device) {
+  console.error("No active BlueStacks device detected via ADB!");
+  console.error("Make sure BlueStacks 5 is open, ADB is enabled in Settings -> Advanced, and Kingshot is on the leaderboard screen.");
   process.exit(1);
 }
 
-// Sorter alliancerne efter total Power (højeste først) og tildel nye ranks 1..N
-const sortedAlliances = [...result.rows]
-  .sort((a, b) => b.powerValue - a.powerValue || b.combatPowerValue - a.combatPowerValue)
-  .map((alliance, index) => ({
-    ...alliance,
-    displayRank: index + 1,
-  }));
+console.log(`Connected to BlueStacks device: ${device}`);
+console.log("Extracting leaderboard data from emulator screen...");
 
-const topAlliances = sortedAlliances.slice(0, 10);
-const allianceLines = topAlliances.map(
-  (r) =>
-    `#${r.displayRank} [${r.tag}] ${r.name} | Power: ${r.power ?? "Unavailable"} | Combat power: ${r.realPower ?? "Unavailable"} | Members: ${r.members ?? "Unavailable"}`,
-);
+const { alliances, screenshotPath } = await extractFromEmulator();
+
+if (!alliances.length) {
+  console.error(`No alliance rows could be parsed from the emulator screenshot (${screenshotPath}).`);
+  process.exit(1);
+}
+
+const topAlliances = alliances.slice(0, 10);
+const allianceLines = topAlliances.map((r) => {
+  const tagPart = r.tag ? `[${r.tag}] ` : "";
+  return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
+});
 
 const updatedTime = new Date().toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
-const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (Ranked by Power)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
+const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime}*`;
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -47,7 +50,9 @@ if (!channel || !("send" in channel)) {
 
 let sent: Message;
 try {
-  sent = await channel.send(message);
+  sent = await channel.send({
+    content: message,
+  });
 } catch (error) {
   if (error instanceof Error && "code" in error && error.code === 50013) {
     throw new Error(
