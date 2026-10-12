@@ -27,7 +27,7 @@ Running `npm run login` again opens a new browser window but loads the previousl
 **Keep the session file private:** it grants account access, is excluded from Git, and must not be shared or uploaded. On Windows, restrict access using your account's file permissions; Unix permission modes alone do not protect a Windows file. Anyone who can invoke this bot's command can retrieve rankings available to the saved account, so use it only in a trusted Discord server.
 
 ## Automatisk udsendelse via GitHub Actions
-Projektet indeholder en GitHub Actions workflow i [.github/workflows/daily-leaderboard.yml](.github/workflows/daily-leaderboard.yml), som automatisk kan køre f.eks. hver dag, hente data fra StratForge og sende en opdatering direkte ud i din Discord-kanal uden at din computer behøver at være tændt.
+Projektet indeholder en GitHub Actions workflow i [.github/workflows/daily-leaderboard.yml](.github/workflows/daily-leaderboard.yml), som automatisk henter data fra StratForge og opdaterer botens seneste besked i din Discord-kanal hvert femte minut. GitHub Actions understøtter ikke planlagte workflows oftere end hvert femte minut, og planlagte kørsler kan blive forsinkede.
 
 ### Opsætning i GitHub:
 1. Upload/push koden til dit private GitHub repository (husk at `.env` og `.auth` automatisk ignoreres af `.gitignore` og ALDRIG må pushes).
@@ -37,7 +37,7 @@ Projektet indeholder en GitHub Actions workflow i [.github/workflows/daily-leade
    - `DISCORD_CHANNEL_ID`: ID'et på den Discord-tekstkanal, hvor beskeden skal sendes.
    - `KINGDOM`: Det kingdom-nummer der skal hentes (f.eks. `2426`).
    - `STRATFORGE_SESSION_TOKEN`: Din session cookie-værdi fra StratForge (`__Secure-better-auth.session_token`).
-4. Sørg for, at botten har **View Channel** og **Send Messages** i den valgte kanal. Kanalens egne tilladelser kan tilsidesætte bot-rollens standardtilladelser.
+4. Sørg for, at botten har **View Channel**, **Read Message History** og **Send Messages** i den valgte kanal, så den kan finde og redigere sin eksisterende besked. Kanalens egne tilladelser kan tilsidesætte bot-rollens standardtilladelser.
 5. Under fanen **Actions** på GitHub kan du teste det med det samme ved at vælge workflowet og trykke **Run workflow**.
 
-Tidspunktet kan justeres via cron-udtrykket i [.github/workflows/daily-leaderboard.yml](.github/workflows/daily-leaderboard.yml) (sat til `0 12 * * *` som standard, hvilket svarer til kl. 12:00 UTC).
+Intervallet kan justeres via cron-udtrykket i [.github/workflows/daily-leaderboard.yml](.github/workflows/daily-leaderboard.yml), men GitHub Actions tillader højst én planlagt kørsel hvert femte minut. For opdateringer hvert minut skal botten i stedet køre kontinuerligt på en altid tændt maskine eller server.

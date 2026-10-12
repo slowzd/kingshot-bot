@@ -1,12 +1,14 @@
-name: Daily StratForge Leaderboard Broadcast
+name: StratForge Leaderboard Broadcast
 
 on:
   schedule:
-    # 23:20 dansk tid (CEST / UTC+2 = 21:20 UTC)
-    - cron: '20 21 * * *'
-    # 23:30 dansk tid (CEST / UTC+2 = 21:30 UTC)
-    - cron: '30 21 * * *'
+    # GitHub Actions scheduled workflows cannot run more often than every 5 minutes.
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+
+concurrency:
+  group: stratforge-leaderboard-broadcast
+  cancel-in-progress: false
 
 jobs:
   broadcast:
