@@ -32,7 +32,6 @@ KINGDOM=2426
 - `/post-leaderboard`: Immediately fetches the API rankings and posts them to `DISCORD_CHANNEL_ID`, with a private confirmation.
 - `/leaderboard`: Fetches the same rankings as a public response in the channel where the command is used.
 - `npm run broadcast`: Fetches and sends one snapshot, then exits.
-- `npm run broadcast:emulator` and `npm run emulator:test`: Compatibility aliases for the API broadcast; neither uses an emulator anymore.
 - `npm run check`: Runs TypeScript validation.
 - `npm test`: Runs focused API and cumulative-ranking tests without contacting Discord.
 
@@ -45,7 +44,7 @@ Only successfully posted scheduled hourly updates count, at most once per UTC ho
 
 An alliance is tracked once it appears in the current top 10. Tracked alliances outside the top 10 receive rank **11** for each counted update. A new entrant also receives 11 for each earlier counted update that week, so joining late does not create an unfairly low total. Stable alliance IDs retain scores across rank, tag, and name changes.
 
-Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. Old power-difference files are no longer used. A failed API request or Discord send does not change totals. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
+Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. A failed API request or Discord send does not change totals. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
 
 ## GitHub Actions
 The broadcast workflow runs hourly at one minute past each UTC hour (GitHub may delay scheduled runs) and supports manual dispatch. Configure `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and optionally `KINGDOM` as repository secrets. No emulator or browser setup is needed. Scheduled runs use `npm run broadcast -- --scheduled` to count an hourly update; manual dispatch does not count. Delayed runs use the latest UTC :01 hourly slot at their start time. The workflow caches cumulative data between successful runs; a cache miss starts new totals.
