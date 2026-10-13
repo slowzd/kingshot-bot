@@ -6,6 +6,7 @@ import { test, type TestContext } from "node:test";
 import { hourlyMessage, splitMessage } from "./format.ts";
 import { runHourlyUpdate } from "./hourly.ts";
 import { parsePowerSnapshot, type PowerSnapshot } from "./mightpulse.ts";
+import { loadSnapshotLog } from "./snapshot-log.ts";
 import { addHour, createWeek, cumulativeRanking, loadStandings } from "./standings.ts";
 import { dueHour, hourKey, isFinalHourOfWeek, weekStartHour } from "./time.ts";
 
@@ -88,8 +89,8 @@ test("hourly runs count once, Monday 00:01 posts the weekly final, and 01:01 sta
     send: async (content) => { sent.push(content); },
   });
 
-  assert.equal(await run("2026-10-18T23:01:00Z"), "posted");
-  assert.equal(await run("2026-10-18T23:25:00Z"), "already-posted");
+  assert.equal((await run("2026-10-18T23:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-18T23:25:00Z")).status, "already-posted");
   assert.equal(sent.length, 1);
   assert.ok(sent[0].includes("## Cumulative Power Ranking"));
 
@@ -135,6 +136,30 @@ test("failed API or Discord requests do not count the hour", async (t) => {
   await assert.rejects(runHourlyUpdate({ ...base, fetchSnapshot: async () => { throw new Error("API down"); } }), /API down/);
   await assert.rejects(runHourlyUpdate({ ...base, send: async () => { throw new Error("Discord down"); } }), /Discord down/);
   assert.equal(loadStandings(stateFile), null);
-  assert.equal(await runHourlyUpdate(base), "posted");
+  assert.equal((await runHourlyUpdate(base)).status, "posted");
   assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-13T12");
+});
+
+test("each posted update records the API snapshot it used in a generated .ts file", async (t) => {
+  const stateFile = tempStateFile(t);
+  const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
+  const run = (time: string) => runHourlyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile, snapshotFile,
+    fetchSnapshot: async () => snapshot([1, 2]),
+    send: async () => {},
+  });
+  const first = await run("2026-10-13T13:01:30Z");
+  assert.equal(first.status, "posted");
+  assert.equal(first.status === "posted" && first.snapshotUsed.apiCapturedAt, "2026-10-13T12:41:00.000Z");
+  await run("2026-10-13T13:20:00Z");
+  await run("2026-10-13T14:01:00Z");
+
+  const contents = fs.readFileSync(snapshotFile, "utf8");
+  assert.ok(contents.startsWith("// Generated"));
+  assert.ok(contents.includes("export const snapshotLog = {"));
+  const log = loadSnapshotLog(snapshotFile);
+  assert.equal(log?.latest.update, "2026-10-13T14:01:00.000Z");
+  assert.equal(log?.latest.apiCapturedAt, "2026-10-13T12:41:00.000Z");
+  assert.deepEqual(log?.latest.alliances.map((alliance) => alliance.id), [1, 2]);
+  assert.deepEqual(log?.history.map((use) => use.update), ["2026-10-13T14:01:00.000Z", "2026-10-13T13:01:00.000Z"]);
 });

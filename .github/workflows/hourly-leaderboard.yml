@@ -22,6 +22,7 @@ jobs:
       KINGDOM: ${{ secrets.KINGDOM || '2426' }}
       STATE_BRANCH: leaderboard-state
       STATE_FILE: state/leaderboard.json
+      SNAPSHOT_FILE: state/snapshot.ts
 
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +41,9 @@ jobs:
           if [ "$status" -eq 0 ]; then
             git fetch --depth=1 origin "$STATE_BRANCH:refs/remotes/origin/$STATE_BRANCH"
             git show "origin/$STATE_BRANCH:leaderboard.json" > "$STATE_FILE"
+            if git cat-file -e "origin/$STATE_BRANCH:snapshot.ts" 2> /dev/null; then
+              git show "origin/$STATE_BRANCH:snapshot.ts" > "$SNAPSHOT_FILE"
+            fi
           elif [ "$status" -eq 2 ]; then
             echo "No saved standings yet; starting a new week."
           else
@@ -53,22 +57,25 @@ jobs:
           MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
         run: node src/run.ts
 
-      - name: Save standings
+      - name: Save standings and snapshot log
         # Also runs after a partial failure so an already-posted weekly final is not posted twice.
         if: always() && steps.load.outcome == 'success'
         run: |
           set -euo pipefail
           [ -f "$STATE_FILE" ] || exit 0
+          entries=$(printf '100644 blob %s\tleaderboard.json\n' "$(git hash-object -w "$STATE_FILE")")
+          if [ -f "$SNAPSHOT_FILE" ]; then
+            entries+=$'\n'$(printf '100644 blob %s\tsnapshot.ts\n' "$(git hash-object -w "$SNAPSHOT_FILE")")
+          fi
+          tree=$(printf '%s\n' "$entries" | git mktree)
           parent=()
           if git rev-parse -q --verify "refs/remotes/origin/$STATE_BRANCH" > /dev/null; then
-            if git show "origin/$STATE_BRANCH:leaderboard.json" | cmp -s - "$STATE_FILE"; then
+            if [ "$(git rev-parse "origin/$STATE_BRANCH^{tree}")" = "$tree" ]; then
               echo "Standings unchanged."
               exit 0
             fi
             parent=(-p "origin/$STATE_BRANCH")
           fi
-          blob=$(git hash-object -w "$STATE_FILE")
-          tree=$(printf '100644 blob %s\tleaderboard.json\n' "$blob" | git mktree)
           commit=$(git -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit-tree "$tree" "${parent[@]}" -m "Update standings")

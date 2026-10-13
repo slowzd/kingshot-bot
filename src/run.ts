@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { sendDiscordMessage } from "./discord.ts";
 import { runHourlyUpdate } from "./hourly.ts";
@@ -31,6 +32,7 @@ const result = await runHourlyUpdate({
   now: new Date(),
   kingdom,
   stateFile: path.resolve(process.env.STATE_FILE || "state/leaderboard.json"),
+  snapshotFile: path.resolve(process.env.SNAPSHOT_FILE || "state/snapshot.ts"),
   fetchSnapshot: () => fetchPowerSnapshot(kingdom, apiKey),
   send: async (content) => {
     if (dryRun) {
@@ -42,4 +44,13 @@ const result = await runHourlyUpdate({
   },
   dryRun,
 });
-console.log(result === "posted" ? `Kingdom ${kingdom} leaderboard ${dryRun ? "previewed" : "posted"}.` : "Nothing to do.");
+if (result.status === "posted") {
+  const used = result.snapshotUsed;
+  const utc = (iso: string) => `${iso.slice(0, 16).replace("T", " ")} UTC`;
+  const age = `${Math.floor(used.apiAgeMinutes / 60)}h ${used.apiAgeMinutes % 60}m`;
+  const summary = `Kingdom ${kingdom} update ${utc(used.update)} ${dryRun ? "previewed" : "posted"} using Mightpulse snapshot captured ${utc(used.apiCapturedAt)} (${age} old).`;
+  console.log(summary);
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+} else {
+  console.log("Nothing to do.");
+}

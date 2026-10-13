@@ -1,5 +1,6 @@
 import { hourlyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
 import type { PowerSnapshot } from "./mightpulse.ts";
+import { recordSnapshot, snapshotUse, type SnapshotUse } from "./snapshot-log.ts";
 import { addHour, createWeek, loadStandings, saveStandings, type WeekStandings } from "./standings.ts";
 import { dueHour, hourKey, isFinalHourOfWeek, weekStartHour } from "./time.ts";
 
@@ -7,13 +8,19 @@ export interface HourlyRun {
   now: Date;
   kingdom: number;
   stateFile: string;
+  /** Generated .ts file recording which API snapshot each update used. */
+  snapshotFile?: string;
   fetchSnapshot: () => Promise<PowerSnapshot>;
   send: (content: string) => Promise<void>;
   /** Prints messages without saving standings. */
   dryRun?: boolean;
 }
 
-export async function runHourlyUpdate(run: HourlyRun): Promise<"posted" | "already-posted"> {
+export type HourlyResult =
+  | { status: "posted"; snapshotUsed: SnapshotUse }
+  | { status: "already-posted" };
+
+export async function runHourlyUpdate(run: HourlyRun): Promise<HourlyResult> {
   const hour = dueHour(run.now);
   let week = loadStandings(run.stateFile);
   if (week && week.kingdom !== run.kingdom) {
@@ -22,10 +29,11 @@ export async function runHourlyUpdate(run: HourlyRun): Promise<"posted" | "alrea
   }
   if (week?.lastHour && week.lastHour >= hourKey(hour)) {
     console.log(`The ${hourKey(hour)}:01 UTC update was already posted.`);
-    return "already-posted";
+    return { status: "already-posted" };
   }
 
   const snapshot = await run.fetchSnapshot();
+  const fetchedAt = new Date();
   const post = async (message: string) => {
     for (const part of splitMessage(message)) await run.send(part);
   };
@@ -46,5 +54,8 @@ export async function runHourlyUpdate(run: HourlyRun): Promise<"posted" | "alrea
   const updated = { ...addHour(week ?? createWeek(run.kingdom, hour), snapshot, hour), finalPosted: final };
   await post(final ? weeklyFinalMessage(updated, snapshot, hour) : hourlyMessage(snapshot, updated, hour));
   save(updated);
-  return "posted";
+  const snapshotUsed = run.snapshotFile && !run.dryRun
+    ? recordSnapshot(run.snapshotFile, snapshot, hour, fetchedAt)
+    : snapshotUse(snapshot, hour, fetchedAt);
+  return { status: "posted", snapshotUsed };
 }
