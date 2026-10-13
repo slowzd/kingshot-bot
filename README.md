@@ -27,6 +27,7 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
    - `KINGDOM` – optional, defaults to `2426`
 2. Create a GitHub token with access to this repository and **Actions: Read and write** (or a classic token with the `repo` and `workflow` scopes).
 3. On [cron-job.org](https://cron-job.org), create a job that runs every hour at minute 1:
+   - Schedule: **Custom** → crontab expression `1 * * * *` (XX:01 every hour)
    - URL: `https://api.github.com/repos/slowzd/kingshot-bot/actions/workflows/hourly-leaderboard.yml/dispatches`
    - Request method: `POST`, body: `{"ref":"main"}`
    - Headers: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, `Content-Type: application/json`, `User-Agent: kingshot-leaderboard-cron`
