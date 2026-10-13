@@ -45,7 +45,7 @@ function updatesText(week: WeekStandings): string {
 }
 
 function footer(snapshot: PowerSnapshot, hour: Date): string {
-  return `-# Update ${formatUtc(postTime(hour))} UTC · Source: Mightpulse`;
+  return `-# Update ${formatUtc(postTime(hour))} UTC`;
 }
 
 export function hourlyMessage(
@@ -56,8 +56,8 @@ export function hourlyMessage(
   return [
     ...powerSection(snapshot),
     "",
-    "## Cumulative Power Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · Points = rank held each hour · Lowest wins`,
+    "## Cumulative Ranking",
+    `-# ${weekRange(week)} · ${updatesText(week)} · Points = rank held each hour`,
     ...cumulativeLines(week),
     "",
     footer(snapshot, hour),
@@ -70,8 +70,8 @@ export function weeklyFinalMessage(
   hour?: Date,
 ): string {
   const final = [
-    "## 🏆 Weekly Final — Cumulative Power Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · Lowest wins · New ranking starts Monday 01:01 UTC`,
+    "## 🏆 Weekly Final — Cumulative Ranking",
+    `-# ${weekRange(week)} · ${updatesText(week)} · New ranking starts Monday 01:01 UTC`,
     ...cumulativeLines(week),
   ];
   if (!snapshot || !hour) return final.join("\n");
