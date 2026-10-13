@@ -28,15 +28,16 @@ export function parseAllianceSnapshot(
     !isRecord(data) ||
     data.ok !== true ||
     data.kid !== kingdom ||
-    !isRecord(data.boards)
+    !isRecord(data.board)
   ) {
     throw new Error(`Mightpulse returned an invalid response for kingdom ${kingdom}.`);
   }
 
-  const board = data.boards["1"];
+  const board = data.board;
   if (
     !isRecord(board) ||
     board.type !== 1 ||
+    board.key !== "alliance_power" ||
     typeof board.captured_at !== "number" ||
     !Number.isFinite(board.captured_at) ||
     board.captured_at <= 0 ||
@@ -62,11 +63,11 @@ export function parseAllianceSnapshot(
       typeof row.name !== "string" ||
       !row.name.trim() ||
       typeof row.abbr !== "string" ||
-      typeof row.game_power !== "number" ||
-      !Number.isSafeInteger(row.game_power) ||
-      row.game_power < 0
+      typeof row.score !== "number" ||
+      !Number.isSafeInteger(row.score) ||
+      row.score < 0
     ) {
-      throw new Error("Mightpulse returned an invalid Alliance Power row.");
+      throw new Error("Mightpulse returned an invalid Alliance Power ranking.");
     }
     if (ids.has(row.aid) || ranks.has(row.rank)) {
       throw new Error("Mightpulse returned duplicate Alliance Power IDs or ranks.");
@@ -78,7 +79,7 @@ export function parseAllianceSnapshot(
       rank: row.rank,
       tag: row.abbr.trim(),
       name: row.name.trim(),
-      power: row.game_power.toLocaleString("en-US"),
+      power: row.score.toLocaleString("en-US"),
     };
   });
 
@@ -88,20 +89,27 @@ export function parseAllianceSnapshot(
 
 export async function fetchAllianceSnapshot(
   kingdom: number,
+  apiKey = process.env.MIGHTPULSE_API_KEY,
 ): Promise<AllianceSnapshot> {
   if (!isPositiveInteger(kingdom)) {
     throw new Error("KINGDOM must be a positive safe integer.");
   }
+  if (!apiKey?.trim()) {
+    throw new Error("Set MIGHTPULSE_API_KEY to authenticate with Mightpulse.");
+  }
 
   const response = await fetch(
-    `https://mightpulse.com/api/kingdoms/${kingdom}/ingame-ranks`,
+    `https://api.mightpulse.com/v1/kingdoms/${kingdom}/ranks?board=alliance_power&limit=100`,
     {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       signal: AbortSignal.timeout(30_000),
     },
   );
   if (!response.ok) {
-    throw new Error(`Mightpulse rankings request failed: HTTP ${response.status}.`);
+    throw new Error(`Mightpulse API request failed: HTTP ${response.status}.`);
   }
   const data: unknown = await response.json();
   return parseAllianceSnapshot(data, kingdom);

@@ -18,20 +18,20 @@ const firstHour = new Date("2026-10-13T01:01:00Z");
 function apiRow(id = 101, rank = 1, power = 3_441_150_819) {
   return {
     aid: id, rank, kid: 2426, name: `Alliance ${id}`, abbr: `T${id}`,
-    game_power: power, score: 123,
+    score: power,
   };
 }
 
 function apiResponse(rows = [apiRow()]) {
   return {
-    ok: true, kid: 2426,
-    boards: {
-      "1": {
-        type: 1, name: "Alliance Power",
-        captured_at: Date.parse("2026-10-13T00:41:03Z") / 1000,
-        rows,
-      },
-      "9": { type: 9, name: "Troop Power", rows: [] },
+    ok: true,
+    kid: 2426,
+    board: {
+      type: 1,
+      key: "alliance_power",
+      name: "Alliance Power",
+      captured_at: Date.parse("2026-10-13T00:41:03Z") / 1000,
+      rows,
     },
   };
 }
@@ -50,7 +50,7 @@ test("reads exact alliance power, ranks and capture time; rejects invalid API da
   assert.equal(snapshot.capturedAt.toISOString(), "2026-10-13T00:41:03.000Z");
   assert.throws(() => parseAllianceSnapshot({ ...apiResponse(), ok: false }, 2426));
   assert.throws(() => parseAllianceSnapshot(apiResponse(), 2446));
-  assert.throws(() => parseAllianceSnapshot({ ...apiResponse(), boards: {} }, 2426));
+  assert.throws(() => parseAllianceSnapshot({ ...apiResponse(), board: {} }, 2426));
   assert.throws(() => parseAllianceSnapshot(apiResponse([]), 2426));
   for (const power of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
     assert.throws(() => parseAllianceSnapshot(apiResponse([apiRow(101, 1, power)]), 2426));
@@ -150,22 +150,29 @@ test("separate cumulative section sorts lowest first and removes power deltas", 
   assert.throws(() => formatLeaderboard(snapshot, ranking), /message limit/);
 });
 
-test("API fetch uses timeout and rejects HTTP, JSON and network failures", async (t) => {
+test("authenticated API fetch uses timeout and rejects HTTP, JSON and network failures", async (t) => {
   const mock = t.mock.method(globalThis, "fetch", async (
     url: string | URL | Request, options?: RequestInit,
   ) => {
-    assert.equal(url, "https://mightpulse.com/api/kingdoms/2426/ingame-ranks");
+    assert.equal(
+      url,
+      "https://api.mightpulse.com/v1/kingdoms/2426/ranks?board=alliance_power&limit=100",
+    );
+    assert.equal(new Headers(options?.headers).get("authorization"), "Bearer test-api-key");
     assert.ok(options?.signal instanceof AbortSignal);
     return Response.json(apiResponse());
   });
-  assert.equal((await fetchAllianceSnapshot(2426)).alliances.length, 1);
+  assert.equal((await fetchAllianceSnapshot(2426, "test-api-key")).alliances.length, 1);
   await assert.rejects(fetchAllianceSnapshot(0), /KINGDOM/);
+  await assert.rejects(fetchAllianceSnapshot(2426, ""), /MIGHTPULSE_API_KEY/);
   mock.mock.mockImplementation(async () => new Response("", { status: 503 }));
-  await assert.rejects(fetchAllianceSnapshot(2426), /HTTP 503/);
+  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), /HTTP 503/);
   mock.mock.mockImplementation(async () => new Response("not JSON"));
-  await assert.rejects(fetchAllianceSnapshot(2426), SyntaxError);
-  mock.mock.mockImplementation(async () => { throw new Error("Network unavailable"); });
-  await assert.rejects(fetchAllianceSnapshot(2426), /Network unavailable/);
+  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), SyntaxError);
+  mock.mock.mockImplementation(async () => {
+    throw new Error("Network unavailable");
+  });
+  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), /Network unavailable/);
 });
 
 test("persists weekly totals, isolates kingdoms and rejects corrupt state", () => {
@@ -190,9 +197,11 @@ test("persists weekly totals, isolates kingdoms and rejects corrupt state", () =
 
 test("only successful scheduled posts count, duplicates and manual posts do not", async (t) => {
   const original = process.cwd();
+  const originalApiKey = process.env.MIGHTPULSE_API_KEY;
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cumulative-post-test-"));
   const mock = t.mock.method(globalThis, "fetch", async () => Response.json(apiResponse()));
   try {
+    process.env.MIGHTPULSE_API_KEY = "test-api-key";
     process.chdir(directory);
     await publishLeaderboard(2426, async () => {});
     assert.ok(!fs.existsSync(path.resolve("snapshots", "cumulative-ranking-2426.json")));
@@ -217,6 +226,8 @@ test("only successful scheduled posts count, duplicates and manual posts do not"
     assert.equal(loadCumulativeRanking(2426, firstHour).updates, 2);
   } finally {
     process.chdir(original);
+    if (originalApiKey === undefined) delete process.env.MIGHTPULSE_API_KEY;
+    else process.env.MIGHTPULSE_API_KEY = originalApiKey;
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });

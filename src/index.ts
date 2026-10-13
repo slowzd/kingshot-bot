@@ -12,11 +12,19 @@ const token = process.env.DISCORD_TOKEN;
 const appId = process.env.DISCORD_CLIENT_ID;
 const guildId = process.env.DISCORD_GUILD_ID;
 const channelId = process.env.DISCORD_CHANNEL_ID;
+const mightpulseApiKey = process.env.MIGHTPULSE_API_KEY;
 const kingdom = Number(process.env.KINGDOM || 2426);
 
-if (!token || !appId || !guildId || !Number.isSafeInteger(kingdom) || kingdom < 1) {
+if (
+  !token ||
+  !appId ||
+  !guildId ||
+  !mightpulseApiKey ||
+  !Number.isSafeInteger(kingdom) ||
+  kingdom < 1
+) {
   throw new Error(
-    "Set DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID and KINGDOM in .env",
+    "Set DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID, MIGHTPULSE_API_KEY and KINGDOM in .env",
   );
 }
 

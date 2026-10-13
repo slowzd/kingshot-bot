@@ -41,6 +41,7 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
           SCHEDULED: ${{ github.event_name == 'schedule' }}
         run: |
           if [ "$SCHEDULED" = "true" ]; then

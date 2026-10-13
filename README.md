@@ -1,14 +1,14 @@
 # Kingshot Discord Bot — Mightpulse Alliance Leaderboard
 
-Reads in-game **Alliance Power** rankings from the public Mightpulse API and posts the top 10 alliances to Discord. BlueStacks, ADB, screenshots, OCR, and browser login are not required.
+Reads in-game **Alliance Power** rankings from the authenticated Mightpulse API and posts the top 10 alliances to Discord. BlueStacks, ADB, screenshots, OCR, and browser login are not required.
 
 ## How It Works
-1. Requests `https://mightpulse.com/api/kingdoms/<KINGDOM>/ingame-ranks`.
-2. Uses the Alliance Power board (`boards["1"]`) and its exact `game_power` values.
+1. Requests `https://api.mightpulse.com/v1/kingdoms/<KINGDOM>/ranks?board=alliance_power&limit=100` with `MIGHTPULSE_API_KEY`.
+2. Uses the Alliance Power board and its exact score values.
 3. Adds each alliance's rank to a weekly cumulative total on scheduled hourly updates.
 4. Posts the current power leaderboard, a separate **Cumulative Power** ranking, and the API's capture date/time in UTC.
 
-Mightpulse controls how often the underlying rankings are refreshed. Fetching the API does not capture new in-game data. Each scheduled hour counts the ranks returned, even when the source snapshot is unchanged; the displayed UTC capture time makes its age visible.
+The bot requests rankings hourly at one minute past each UTC hour. Mightpulse responses can be up to one hour old; fetching the API does not capture new in-game data. Each scheduled hour counts the ranks returned, even when the source snapshot is unchanged; the displayed UTC capture time makes its age visible.
 
 ## Requirements
 - Node.js 20 or newer.
@@ -22,10 +22,11 @@ DISCORD_TOKEN=your-bot-token
 DISCORD_CLIENT_ID=your-application-id
 DISCORD_GUILD_ID=your-server-id
 DISCORD_CHANNEL_ID=your-channel-id
+MIGHTPULSE_API_KEY=your-mightpulse-api-key
 KINGDOM=2426
 ```
 
-`KINGDOM` defaults to `2426`. The one-shot broadcast needs only `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and optionally `KINGDOM`; client and guild IDs are needed for the running slash-command bot.
+`KINGDOM` defaults to `2426`. The one-shot broadcast needs `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and `MIGHTPULSE_API_KEY`; client and guild IDs are needed for the running slash-command bot.
 
 ## Commands
 - `npm start`: Registers Discord commands, posts an initial snapshot, and automatically posts hourly at one minute past each UTC hour (01:01, 02:01, and so on).
@@ -47,4 +48,4 @@ An alliance is tracked once it appears in the current top 10. Tracked alliances 
 Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. A failed API request or Discord send does not change totals. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
 
 ## GitHub Actions
-The broadcast workflow runs hourly at one minute past each UTC hour (GitHub may delay scheduled runs) and supports manual dispatch. Configure `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and optionally `KINGDOM` as repository secrets. No emulator or browser setup is needed. Scheduled runs use `npm run broadcast -- --scheduled` to count an hourly update; manual dispatch does not count. Delayed runs use the latest UTC :01 hourly slot at their start time. The workflow caches cumulative data between successful runs; a cache miss starts new totals.
+The broadcast workflow runs hourly at one minute past each UTC hour (GitHub may delay scheduled runs) and supports manual dispatch. Configure `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, `MIGHTPULSE_API_KEY`, and optionally `KINGDOM` as repository secrets. No emulator or browser setup is needed. Scheduled runs use `npm run broadcast -- --scheduled` to count an hourly update; manual dispatch does not count. Delayed runs use the latest UTC :01 hourly slot at their start time. The workflow caches cumulative data between successful runs; a cache miss starts new totals.

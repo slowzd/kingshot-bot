@@ -4,6 +4,7 @@ import { publishLeaderboard } from "./leaderboard.js";
 
 const token = process.env.DISCORD_TOKEN;
 const channelId = process.env.DISCORD_CHANNEL_ID;
+const mightpulseApiKey = process.env.MIGHTPULSE_API_KEY;
 const kingdom = Number(process.env.KINGDOM || 2426);
 const args = process.argv.slice(2);
 if (args.some((arg) => arg !== "--scheduled")) {
@@ -11,8 +12,16 @@ if (args.some((arg) => arg !== "--scheduled")) {
 }
 const scheduledAt = args.includes("--scheduled") ? new Date() : undefined;
 
-if (!token || !channelId || !Number.isSafeInteger(kingdom) || kingdom < 1) {
-  throw new Error("Set DISCORD_TOKEN, DISCORD_CHANNEL_ID and a positive integer KINGDOM.");
+if (
+  !token ||
+  !channelId ||
+  !mightpulseApiKey ||
+  !Number.isSafeInteger(kingdom) ||
+  kingdom < 1
+) {
+  throw new Error(
+    "Set DISCORD_TOKEN, DISCORD_CHANNEL_ID, MIGHTPULSE_API_KEY and a positive integer KINGDOM.",
+  );
 }
 
 console.log(`Starting Mightpulse broadcast for Kingdom ${kingdom} to channel ${channelId}...`);
