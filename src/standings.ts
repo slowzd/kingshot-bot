@@ -35,14 +35,17 @@ export function createWeek(kingdom: number, hour: Date): WeekStandings {
   };
 }
 
-/** Adds each alliance's current rank as points; alliances outside the API list get last rank + 1. */
+/**
+ * Adds each alliance's current rank as points; alliances outside the API list get last rank + 1.
+ * Every call counts, including repeated calls for the same hour.
+ */
 export function addHour(week: WeekStandings, snapshot: PowerSnapshot, hour: Date): WeekStandings {
   if (week.kingdom !== snapshot.kingdom || week.weekStart !== weekStartHour(hour).toISOString()) {
     throw new Error("Standings do not belong to this kingdom and week.");
   }
   const key = hourKey(hour);
-  if (week.lastHour !== null && key <= week.lastHour) {
-    throw new Error(`Hour ${key} has already been counted.`);
+  if (week.lastHour !== null && key < week.lastHour) {
+    throw new Error(`Hour ${key} is older than the last counted hour ${week.lastHour}.`);
   }
 
   const current = new Map(snapshot.alliances.map((alliance) => [alliance.id, alliance]));

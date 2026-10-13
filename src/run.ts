@@ -44,13 +44,9 @@ const result = await runHourlyUpdate({
   },
   dryRun,
 });
-if (result.status === "posted") {
-  const used = result.snapshotUsed;
-  const utc = (iso: string) => `${iso.slice(0, 16).replace("T", " ")} UTC`;
-  const age = `${Math.floor(used.apiAgeMinutes / 60)}h ${used.apiAgeMinutes % 60}m`;
-  const summary = `Kingdom ${kingdom} update ${utc(used.update)} ${dryRun ? "previewed" : "posted"} using Mightpulse snapshot captured ${utc(used.apiCapturedAt)} (${age} old).`;
-  console.log(summary);
-  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
-} else {
-  console.log("Nothing to do.");
-}
+const used = result.snapshotUsed;
+const utc = (iso: string) => `${iso.slice(0, 16).replace("T", " ")} UTC`;
+const age = `${Math.floor(used.apiAgeMinutes / 60)}h ${used.apiAgeMinutes % 60}m`;
+const summary = `Kingdom ${kingdom} update ${utc(used.update)} ${dryRun ? "previewed" : "posted"} using Mightpulse snapshot captured ${utc(used.apiCapturedAt)} (${age} old).`;
+console.log(summary);
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);

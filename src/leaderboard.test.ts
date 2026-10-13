@@ -57,12 +57,19 @@ test("reads the Alliance Power API response and rejects invalid data", () => {
 test("each hour adds the rank held; dropouts and late entrants are scored fairly", () => {
   const first = new Date("2026-10-13T12:00:00Z");
   let week = addHour(createWeek(2426, first), snapshot([1, 2, 3]), first);
-  assert.throws(() => addHour(week, snapshot([1, 2, 3]), first), /already been counted/);
+  assert.throws(() => addHour(week, snapshot([1, 2, 3]), new Date("2026-10-13T11:00:00Z")), /older than the last counted hour/);
   week = addHour(week, snapshot([2, 1, 4]), new Date("2026-10-13T13:00:00Z"));
   const points = Object.fromEntries(week.alliances.map((standing) => [standing.id, standing.points]));
   assert.deepEqual(points, { 1: 3, 2: 3, 3: 7, 4: 7 });
   assert.equal(week.updates, 2);
   assert.deepEqual(cumulativeRanking(week).map((standing) => standing.id), [1, 2, 3, 4]);
+
+  const repeated = addHour(week, snapshot([1, 2]), new Date("2026-10-13T13:00:00Z"));
+  assert.equal(repeated.updates, 3);
+  assert.deepEqual(
+    Object.fromEntries(repeated.alliances.map((standing) => [standing.id, standing.points])),
+    { 1: 4, 2: 5, 3: 10, 4: 10 },
+  );
 });
 
 test("message shows top 10 power and cumulative ranking within Discord limits", () => {
@@ -78,7 +85,7 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   assert.deepEqual(splitMessage(message), [message]);
 });
 
-test("hourly runs count once, Monday 00:01 posts the weekly final, and 01:01 starts over", async (t) => {
+test("every run posts and counts, Monday 00:01 posts the weekly final, and 01:01 starts over", async (t) => {
   const stateFile = tempStateFile(t);
   const sent: string[] = [];
   const run = (time: string, ids = [1, 2, 3]) => runHourlyUpdate({
@@ -90,22 +97,23 @@ test("hourly runs count once, Monday 00:01 posts the weekly final, and 01:01 sta
   });
 
   assert.equal((await run("2026-10-18T23:01:00Z")).status, "posted");
-  assert.equal((await run("2026-10-18T23:25:00Z")).status, "already-posted");
-  assert.equal(sent.length, 1);
+  assert.equal((await run("2026-10-18T23:25:00Z")).status, "posted");
+  assert.equal(sent.length, 2);
   assert.ok(sent[0].includes("## Cumulative Power Ranking"));
+  assert.equal(loadStandings(stateFile)?.updates, 2);
 
   await run("2026-10-19T00:01:30Z", [2, 1, 3]);
-  assert.equal(sent.length, 2);
-  assert.ok(sent[1].includes("Weekly Final"));
-  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · 2 hourly updates"));
-  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 3 pts/);
+  assert.equal(sent.length, 3);
+  assert.ok(sent[2].includes("Weekly Final"));
+  assert.ok(sent[2].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · 3 hourly updates"));
+  assert.match(sent[2], /\*\*#1\*\* \[A1\] Alliance 1 — 4 pts/);
   assert.equal(loadStandings(stateFile)?.finalPosted, true);
 
   await run("2026-10-19T01:01:00Z", [3, 2, 1]);
-  assert.equal(sent.length, 3);
-  assert.ok(!sent[2].includes("Weekly Final"));
-  assert.ok(sent[2].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · 1 hourly update "));
-  assert.match(sent[2], /\*\*#1\*\* \[A3\] Alliance 3 — 1 pts/);
+  assert.equal(sent.length, 4);
+  assert.ok(!sent[3].includes("Weekly Final"));
+  assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · 1 hourly update "));
+  assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 1 pts/);
   assert.equal(loadStandings(stateFile)?.updates, 1);
 });
 
@@ -161,5 +169,5 @@ test("each posted update records the API snapshot it used in a generated .ts fil
   assert.equal(log?.latest.update, "2026-10-13T14:01:00.000Z");
   assert.equal(log?.latest.apiCapturedAt, "2026-10-13T12:41:00.000Z");
   assert.deepEqual(log?.latest.alliances.map((alliance) => alliance.id), [1, 2]);
-  assert.deepEqual(log?.history.map((use) => use.update), ["2026-10-13T14:01:00.000Z", "2026-10-13T13:01:00.000Z"]);
+  assert.deepEqual(log?.history.map((use) => use.update), ["2026-10-13T14:01:00.000Z", "2026-10-13T13:01:00.000Z", "2026-10-13T13:01:00.000Z"]);
 });

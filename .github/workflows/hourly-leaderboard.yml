@@ -1,10 +1,8 @@
 name: Hourly Alliance Leaderboard
 
 on:
-  schedule:
-    - cron: '1 * * * *'
-    # Fallback for when GitHub delays or drops the :01 run; it does nothing if that hour was already posted.
-    - cron: '20 * * * *'
+  # Triggered every hour at XX:01 UTC by an external scheduler (cron-job.org) through the GitHub API,
+  # because GitHub's own schedule was unreliable. Every run posts and counts, so do not add a schedule here too.
   workflow_dispatch:
 
 permissions:
@@ -58,7 +56,7 @@ jobs:
         run: node src/run.ts
 
       - name: Save standings and snapshot log
-        # Also runs after a partial failure so an already-posted weekly final is not posted twice.
+        # Also runs after a partial failure so standings that were already posted are saved.
         if: always() && steps.load.outcome == 'success'
         run: |
           set -euo pipefail

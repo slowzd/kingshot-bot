@@ -2,7 +2,7 @@ import { hourlyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
 import type { PowerSnapshot } from "./mightpulse.ts";
 import { recordSnapshot, snapshotUse, type SnapshotUse } from "./snapshot-log.ts";
 import { addHour, createWeek, loadStandings, saveStandings, type WeekStandings } from "./standings.ts";
-import { dueHour, hourKey, isFinalHourOfWeek, weekStartHour } from "./time.ts";
+import { dueHour, isFinalHourOfWeek, weekStartHour } from "./time.ts";
 
 export interface HourlyRun {
   now: Date;
@@ -16,20 +16,18 @@ export interface HourlyRun {
   dryRun?: boolean;
 }
 
-export type HourlyResult =
-  | { status: "posted"; snapshotUsed: SnapshotUse }
-  | { status: "already-posted" };
+export interface HourlyResult {
+  status: "posted";
+  snapshotUsed: SnapshotUse;
+}
 
+/** Every run posts and counts, even when the same hour was already posted. */
 export async function runHourlyUpdate(run: HourlyRun): Promise<HourlyResult> {
   const hour = dueHour(run.now);
   let week = loadStandings(run.stateFile);
   if (week && week.kingdom !== run.kingdom) {
     console.warn(`Saved standings are for kingdom ${week.kingdom}; starting new standings for ${run.kingdom}.`);
     week = null;
-  }
-  if (week?.lastHour && week.lastHour >= hourKey(hour)) {
-    console.log(`The ${hourKey(hour)}:01 UTC update was already posted.`);
-    return { status: "already-posted" };
   }
 
   const snapshot = await run.fetchSnapshot();
