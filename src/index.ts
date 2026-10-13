@@ -7,6 +7,7 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { publishLeaderboard } from "./leaderboard.js";
+import { getDueHourlySlot } from "./hourly-scheduler.js";
 
 const token = process.env.DISCORD_TOKEN;
 const appId = process.env.DISCORD_CLIENT_ID;
@@ -107,7 +108,7 @@ function getNextScheduledTime(): string {
 }
 
 /**
- * Automatically triggers a new update at one minute past each UTC hour.
+ * Runs the latest hourly update once the UTC :01 slot has arrived.
  */
 let isRunningUpdate = false;
 let lastScheduledSlot = "";
@@ -119,33 +120,29 @@ function startHourlyScheduler(targetChannelId: string) {
 
   setInterval(async () => {
     const now = new Date();
-    const minute = now.getUTCMinutes();
+    const slotKey = getDueHourlySlot(now, lastScheduledSlot);
 
-    if (minute === 1) {
-      const slotKey = now.toISOString().slice(0, 16);
+    if (slotKey && !isRunningUpdate) {
+      lastScheduledSlot = slotKey;
+      isRunningUpdate = true;
+      const timeStr = now.toLocaleTimeString("da-DK", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+      });
+      console.log(
+        `\n[Hourly Trigger: ${timeStr} UTC] Starting hourly scheduled update...`,
+      );
 
-      if (lastScheduledSlot !== slotKey && !isRunningUpdate) {
-        lastScheduledSlot = slotKey;
-        isRunningUpdate = true;
-        const timeStr = now.toLocaleTimeString("da-DK", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "UTC",
-        });
+      try {
+        await postLeaderboardSnapshot(targetChannelId, now);
+      } catch (err) {
+        console.error("Scheduled hourly update failed:", err);
+      } finally {
+        isRunningUpdate = false;
         console.log(
-          `\n[Hourly Trigger: ${timeStr} UTC] Starting hourly scheduled update...`,
+          `Next scheduled update at ~${getNextScheduledTime()} UTC`,
         );
-
-        try {
-          await postLeaderboardSnapshot(targetChannelId, now);
-        } catch (err) {
-          console.error("Scheduled hourly update failed:", err);
-        } finally {
-          isRunningUpdate = false;
-          console.log(
-            `Next scheduled update at ~${getNextScheduledTime()} UTC`,
-          );
-        }
       }
     }
   }, 2000); // Check clock every 2 seconds

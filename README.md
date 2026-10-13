@@ -29,7 +29,7 @@ KINGDOM=2426
 `KINGDOM` defaults to `2426`. The one-shot broadcast needs `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and `MIGHTPULSE_API_KEY`; client and guild IDs are needed for the running slash-command bot.
 
 ## Commands
-- `npm start`: Registers Discord commands, posts an initial snapshot, and automatically posts hourly at one minute past each UTC hour (01:01, 02:01, and so on).
+- `npm start`: Registers Discord commands, posts an initial snapshot, and automatically posts hourly at one minute past each UTC hour (01:01, 02:01, and so on). If the bot starts or resumes after that minute, it runs the latest hourly slot once instead of waiting an extra hour.
 - `/post-leaderboard`: Immediately fetches the API rankings and posts them to `DISCORD_CHANNEL_ID`, with a private confirmation.
 - `/leaderboard`: Fetches the same rankings as a public response in the channel where the command is used.
 - `npm run broadcast`: Fetches and sends one snapshot, then exits.
@@ -45,7 +45,7 @@ Only successfully posted scheduled hourly updates count, at most once per UTC ho
 
 An alliance is tracked once it appears in the current top 10. Tracked alliances outside the top 10 receive rank **11** for each counted update. A new entrant also receives 11 for each earlier counted update that week, so joining late does not create an unfairly low total. Stable alliance IDs retain scores across rank, tag, and name changes.
 
-Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. A failed API request or Discord send does not change totals. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
+Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. A failed API request or Discord send does not change totals. After downtime, the bot counts at most the latest hourly slot when it resumes; it does not invent updates for earlier missed hours. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
 
 ## GitHub Actions
 The broadcast workflow runs hourly at one minute past each UTC hour (GitHub may delay scheduled runs) and supports manual dispatch. Configure `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, `MIGHTPULSE_API_KEY`, and optionally `KINGDOM` as repository secrets. No emulator or browser setup is needed. Scheduled runs use `npm run broadcast -- --scheduled` to count an hourly update; manual dispatch does not count. Delayed runs use the latest UTC :01 hourly slot at their start time. The workflow caches cumulative data between successful runs; a cache miss starts new totals.
