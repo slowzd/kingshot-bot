@@ -1,51 +1,47 @@
-# Kingshot Discord Bot — Mightpulse Alliance Leaderboard
+﻿# Kingshot Alliance Power Leaderboard
 
-Reads in-game **Alliance Power** rankings from the authenticated Mightpulse API and posts the top 10 alliances to Discord. BlueStacks, ADB, screenshots, OCR, and browser login are not required.
+Posts a Kingshot **Alliance Power** leaderboard to Discord every hour using the Mightpulse API and GitHub Actions. No server, emulator or always-on bot is needed.
 
-## How It Works
-1. Requests `https://api.mightpulse.com/v1/kingdoms/<KINGDOM>/ranks?board=alliance_power&limit=100` with `MIGHTPULSE_API_KEY`.
-2. Uses the Alliance Power board and its exact score values.
-3. Adds each alliance's rank to a weekly cumulative total on scheduled hourly updates.
-4. Posts the current power leaderboard, a separate **Cumulative Power** ranking, and the API's capture date/time in UTC.
+## What it posts
+Every hour at **XX:01 UTC**:
+1. **Alliance Power — Top 10** from `https://api.mightpulse.com/v1/kingdoms/<KINGDOM>/ranks?board=alliance_power&limit=100`.
+2. **Cumulative Power Ranking** below it (top 10).
 
-GitHub Actions requests rankings at one and 31 minutes past each UTC hour. The second request is a fallback if GitHub delays or skips the first; only one scheduled post is sent and counted per UTC hour. The always-on `npm start` scheduler requests rankings at :01. Mightpulse responses can be up to one hour old; fetching the API does not capture new in-game data. Each scheduled hour counts the ranks returned, even when the source snapshot is unchanged; the displayed UTC capture time makes its age visible.
+Each counted hour, every alliance gains points equal to the Alliance Power rank it holds (rank 1 = 1 point). Points stack all week and **lowest total wins**. Alliances outside the API's list receive last listed rank + 1 for that hour; an alliance that appears mid-week is backfilled with those points for earlier hours, so it cannot get an unfairly low total.
 
-## Requirements
-- Node.js 20 or newer.
-- A Discord bot with View Channel and Send Messages permissions.
-- Internet access to Discord and Mightpulse.
+## Weekly cycle (UTC)
+- **Monday 01:01** – a new cumulative ranking starts.
+- Every hour after that, points are added and the leaderboard is posted.
+- **Monday 00:01** – the last hour of the week is counted and a **Weekly Final** is posted with last week's cumulative ranking.
+- **Monday 01:01** – the next week starts from zero.
 
-Install dependencies with `npm ci`. Configure these variables in a local `.env` file:
+If the Monday 00:01 run is missed entirely, the next run posts the weekly final first and then starts the new week.
 
-```dotenv
-DISCORD_TOKEN=your-bot-token
-DISCORD_CLIENT_ID=your-application-id
-DISCORD_GUILD_ID=your-server-id
-DISCORD_CHANNEL_ID=your-channel-id
-MIGHTPULSE_API_KEY=your-mightpulse-api-key
-KINGDOM=2426
-```
+## GitHub Actions setup
+The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hourly-leaderboard.yml).
 
-`KINGDOM` defaults to `2426`. The one-shot broadcast needs `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, and `MIGHTPULSE_API_KEY`; client and guild IDs are needed for the running slash-command bot.
+1. In the repository go to **Settings → Secrets and variables → Actions** and add:
+   - `DISCORD_TOKEN` – bot token (the bot needs View Channel and Send Messages in the channel)
+   - `DISCORD_CHANNEL_ID` – channel to post in
+   - `MIGHTPULSE_API_KEY` – Mightpulse API key
+   - `KINGDOM` – optional, defaults to `2426`
+2. Push to the default branch. The schedule starts automatically.
+3. Optional: **Actions → Hourly Alliance Leaderboard → Run workflow** posts the current hour immediately, if that hour has not been posted yet.
 
-## Commands
-- `npm start`: Registers Discord commands, posts an initial snapshot, and automatically posts hourly at one minute past each UTC hour (01:01, 02:01, and so on). If the bot starts or resumes after that minute, it runs the latest hourly slot once instead of waiting an extra hour.
-- `/post-leaderboard`: Immediately fetches the API rankings and posts them to `DISCORD_CHANNEL_ID`, with a private confirmation.
-- `/leaderboard`: Fetches the same rankings as a public response in the channel where the command is used.
-- `npm run broadcast`: Fetches and sends one snapshot, then exits.
-- `npm run check`: Runs TypeScript validation.
-- `npm test`: Runs focused API and cumulative-ranking tests without contacting Discord.
+Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` branch, which the workflow creates and updates itself. Delete that branch to reset the standings.
 
-## Cumulative Power
-This separate section sums **rank positions**, not power values. Lower totals are better: three hourly updates in first place give `1 + 1 + 1 = 3`. Every alliance that has entered the top 10 this week is included in the cumulative list, even after leaving the top 10. Totals are sorted lowest first, with alliance ID breaking ties deterministically. Long lists are split across Discord messages without dropping alliances.
+### Timing and reliability
+GitHub starts the job at XX:01, but GitHub's scheduler can delay runs, sometimes by 10+ minutes, or occasionally drop them. A fallback run at XX:20 posts the hour if the XX:01 run did not; otherwise it does nothing. Each hour is posted and counted **at most once**. A failed API or Discord request does not count the hour; if both runs miss an hour, that hour is skipped for everyone.
 
-Before any hourly updates have been counted in a new week, the current top 10 are shown with their current alliance rank as the cumulative rank. These display-only ranks do not count an update or change saved totals.
+Each run takes well under a minute. In a private repository GitHub bills at least one minute per run, about 1,500 minutes a month in total. The Free plan includes 2,000 minutes a month.
 
-Only successfully posted scheduled hourly updates count, at most once per UTC hourly slot. Startup posts, slash commands, ordinary broadcasts, and manually dispatched workflows only display the totals. No missed hours are invented after downtime.
+Mightpulse decides how fresh its data is. The footer shows when Mightpulse captured the rankings.
 
-An alliance is tracked once it appears in the current top 10. Tracked alliances outside the top 10 receive rank **11** for each counted update. A new entrant also receives 11 for each earlier counted update that week, so joining late does not create an unfairly low total. Stable alliance IDs retain scores across rank, tag, and name changes.
+## Local commands
+Requires Node.js 24 or newer. Put the same variables in a local `.env` file.
 
-Totals reset **Monday at 00:01 UTC**. The first scheduled update at that time starts the new week's scores. Data is stored per kingdom in `snapshots/cumulative-ranking-<KINGDOM>.json` and survives restarts. A failed API request or Discord send does not change totals. After downtime, the bot counts at most the latest hourly slot when it resumes; it does not invent updates for earlier missed hours. Posts within a running process are serialized; avoid running multiple bot/broadcast processes against the same files at once.
-
-## GitHub Actions
-The broadcast workflow runs at 01 and 31 minutes past each UTC hour (GitHub may delay scheduled runs) and supports manual dispatch. The two scheduled runs act as a fallback pair; a successful hour is posted at most once. Configure `DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`, `MIGHTPULSE_API_KEY`, and optionally `KINGDOM` as repository secrets. No emulator or browser setup is needed. Scheduled runs use `npm run broadcast -- --scheduled` to count an hourly update; manual dispatch does not count. Delayed runs use the latest UTC :01 hourly slot at their start time. The workflow caches cumulative data between successful runs; a cache miss starts new totals.
+- `npm install` – installs the TypeScript tooling (only needed for `check`).
+- `npm run preview` – fetches the live API and prints the message without posting or saving.
+- `npm start` – posts the current hour to Discord and saves standings to `state/leaderboard.json`.
+- `npm test` – runs the tests.
+- `npm run check` – TypeScript type check.

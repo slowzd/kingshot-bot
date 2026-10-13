@@ -2,236 +2,139 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
-import { formatLeaderboard, publishLeaderboard, splitLeaderboardMessages } from "./leaderboard.js";
-import {
-  addHourlyRanking,
-  getRankingWeek,
-  loadCumulativeRanking,
-  saveCumulativeRanking,
-  type CumulativeRanking,
-} from "./cumulative-ranking.js";
-import { fetchAllianceSnapshot, parseAllianceSnapshot } from "./rankings.js";
+import { test, type TestContext } from "node:test";
+import { hourlyMessage, splitMessage } from "./format.ts";
+import { runHourlyUpdate } from "./hourly.ts";
+import { parsePowerSnapshot, type PowerSnapshot } from "./mightpulse.ts";
+import { addHour, createWeek, cumulativeRanking, loadStandings } from "./standings.ts";
+import { dueHour, hourKey, isFinalHourOfWeek, weekStartHour } from "./time.ts";
 
-const firstHour = new Date("2026-10-13T01:01:00Z");
-
-function apiRow(id = 101, rank = 1, power = 3_441_150_819) {
-  return {
-    aid: id, rank, kid: 2426, name: `Alliance ${id}`, abbr: `T${id}`,
-    score: power,
-  };
+function row(id: number, rank: number, power = 1_000_000_000 - rank) {
+  return { aid: id, rank, kid: 2426, name: `Alliance ${id}`, abbr: `A${id}`, score: power };
 }
 
-function apiResponse(rows = [apiRow()]) {
+function apiResponse(rows = [row(1, 1), row(2, 2), row(3, 3)]) {
   return {
     ok: true,
     kid: 2426,
-    board: {
-      type: 1,
-      key: "alliance_power",
-      name: "Alliance Power",
-      captured_at: Date.parse("2026-10-13T00:41:03Z") / 1000,
-      rows,
-    },
+    board: { key: "alliance_power", captured_at: Date.parse("2026-10-13T12:41:00Z") / 1000, rows },
   };
 }
 
-function empty(): CumulativeRanking {
-  return {
-    kingdom: 2426, week: getRankingWeek(firstHour),
-    updates: 0, lastSlot: null, alliances: [],
-  };
+function snapshot(ids: number[]): PowerSnapshot {
+  return parsePowerSnapshot(apiResponse(ids.map((id, index) => row(id, index + 1))), 2426);
 }
 
-test("reads exact alliance power, ranks and capture time; rejects invalid API data", () => {
-  const snapshot = parseAllianceSnapshot(apiResponse([apiRow(102, 2), apiRow()]), 2426);
-  assert.deepEqual(snapshot.alliances.map((row) => row.id), [101, 102]);
-  assert.equal(snapshot.alliances[0].power, "3,441,150,819");
-  assert.equal(snapshot.capturedAt.toISOString(), "2026-10-13T00:41:03.000Z");
-  assert.throws(() => parseAllianceSnapshot({ ...apiResponse(), ok: false }, 2426));
-  assert.throws(() => parseAllianceSnapshot(apiResponse(), 2446));
-  assert.throws(() => parseAllianceSnapshot({ ...apiResponse(), board: {} }, 2426));
-  assert.throws(() => parseAllianceSnapshot(apiResponse([]), 2426));
-  for (const power of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
-    assert.throws(() => parseAllianceSnapshot(apiResponse([apiRow(101, 1, power)]), 2426));
-  }
-  assert.throws(() => parseAllianceSnapshot(apiResponse([apiRow(), apiRow(101, 2)]), 2426));
-  assert.throws(() => parseAllianceSnapshot(apiResponse([apiRow(), apiRow(102, 1)]), 2426));
-  assert.throws(() => parseAllianceSnapshot(apiResponse([{ ...apiRow(), kid: 2446 }]), 2426));
+function tempStateFile(t: TestContext): string {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "leaderboard-test-"));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  return path.join(directory, "leaderboard.json");
+}
+
+test("posts are due from XX:01 UTC and weeks run Monday 01:01 to Monday 00:01", () => {
+  assert.equal(hourKey(dueHour(new Date("2026-10-13T13:00:59Z"))), "2026-10-13T12");
+  assert.equal(hourKey(dueHour(new Date("2026-10-13T13:01:00Z"))), "2026-10-13T13");
+  assert.equal(hourKey(dueHour(new Date("2026-10-13T13:25:00Z"))), "2026-10-13T13");
+  assert.equal(weekStartHour(new Date("2026-10-19T00:00:00Z")).toISOString(), "2026-10-12T01:00:00.000Z");
+  assert.equal(weekStartHour(new Date("2026-10-19T01:00:00Z")).toISOString(), "2026-10-19T01:00:00.000Z");
+  assert.equal(weekStartHour(new Date("2026-10-12T01:00:00Z")).toISOString(), "2026-10-12T01:00:00.000Z");
+  assert.ok(isFinalHourOfWeek(new Date("2026-10-19T00:00:00Z")));
+  assert.ok(!isFinalHourOfWeek(new Date("2026-10-19T01:00:00Z")));
 });
 
-test("three first places total 3, repeated slots do not count, unchanged API snapshots do", () => {
-  const snapshot = parseAllianceSnapshot(apiResponse(), 2426);
-  let ranking = empty();
-  for (let hour = 1; hour <= 3; hour++) {
-    const now = new Date(`2026-10-13T0${hour}:01:00Z`);
-    ranking = addHourlyRanking(ranking, snapshot, now);
-    assert.equal(addHourlyRanking(ranking, snapshot, now), ranking);
-  }
-  assert.equal(ranking.updates, 3);
-  assert.equal(ranking.alliances[0].total, 3);
-  assert.equal(addHourlyRanking(ranking, snapshot, firstHour), ranking);
+test("reads the Alliance Power API response and rejects invalid data", () => {
+  const parsed = parsePowerSnapshot(apiResponse([row(2, 2), row(1, 1)]), 2426);
+  assert.deepEqual(parsed.alliances.map((alliance) => alliance.id), [1, 2]);
+  assert.equal(parsed.capturedAt.toISOString(), "2026-10-13T12:41:00.000Z");
+  assert.throws(() => parsePowerSnapshot({ ...apiResponse(), ok: false }, 2426));
+  assert.throws(() => parsePowerSnapshot(apiResponse(), 2446));
+  assert.throws(() => parsePowerSnapshot(apiResponse([]), 2426));
+  assert.throws(() => parsePowerSnapshot(apiResponse([row(1, 1), row(1, 2)]), 2426));
+  assert.throws(() => parsePowerSnapshot(apiResponse([row(1, 1, -5)]), 2426));
 });
 
-test("applies rank 11 to dropouts and backfills new entrants; tracks IDs across renames", () => {
-  const first = parseAllianceSnapshot(apiResponse([apiRow(), apiRow(102, 2)]), 2426);
-  let ranking = addHourlyRanking(empty(), first, firstHour);
-  const second = parseAllianceSnapshot(apiResponse([
-    { ...apiRow(102, 1), name: "Renamed", abbr: "NEW" },
-    apiRow(103, 2), apiRow(101, 11),
-  ]), 2426);
-  ranking = addHourlyRanking(ranking, second, new Date("2026-10-13T02:01:00Z"));
-  assert.equal(ranking.alliances.find((row) => row.id === 101)?.total, 12);
-  assert.equal(ranking.alliances.find((row) => row.id === 102)?.total, 3);
-  assert.equal(ranking.alliances.find((row) => row.id === 102)?.name, "Renamed");
-  assert.equal(ranking.alliances.find((row) => row.id === 103)?.total, 13);
+test("each hour adds the rank held; dropouts and late entrants are scored fairly", () => {
+  const first = new Date("2026-10-13T12:00:00Z");
+  let week = addHour(createWeek(2426, first), snapshot([1, 2, 3]), first);
+  assert.throws(() => addHour(week, snapshot([1, 2, 3]), first), /already been counted/);
+  week = addHour(week, snapshot([2, 1, 4]), new Date("2026-10-13T13:00:00Z"));
+  const points = Object.fromEntries(week.alliances.map((standing) => [standing.id, standing.points]));
+  assert.deepEqual(points, { 1: 3, 2: 3, 3: 7, 4: 7 });
+  assert.equal(week.updates, 2);
+  assert.deepEqual(cumulativeRanking(week).map((standing) => standing.id), [1, 2, 3, 4]);
 });
 
-test("weekly boundary is Monday 00:01 UTC, not midnight", () => {
-  assert.equal(getRankingWeek(new Date("2026-10-19T00:00:59.999Z")), "2026-10-12T00:01:00.000Z");
-  assert.equal(getRankingWeek(new Date("2026-10-19T00:01:00Z")), "2026-10-19T00:01:00.000Z");
-  assert.equal(getRankingWeek(new Date("2027-01-01T01:01:00Z")), "2026-12-28T00:01:00.000Z");
+test("message shows top 10 power and cumulative ranking within Discord limits", () => {
+  const ids = Array.from({ length: 100 }, (_, index) => index + 1);
+  const current = snapshot(ids);
+  current.alliances[0].name = "*Bold* _name_";
+  const hour = new Date("2026-10-13T12:00:00Z");
+  const message = hourlyMessage(current, addHour(createWeek(2426, hour), current, hour), hour);
+  assert.equal(message.match(/ — \d{3},/g)?.length, 10);
+  assert.equal(message.match(/ pts$/gm)?.length, 10);
+  assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
+  assert.ok(message.includes("Update Tue 13 Oct 12:01 UTC"));
+  assert.deepEqual(splitMessage(message), [message]);
 });
 
-test("new entrants remain visible beyond ten cumulative entries and long lists split", () => {
-  const first = parseAllianceSnapshot(apiResponse(
-    Array.from({ length: 10 }, (_, index) => apiRow(index + 1, index + 1)),
-  ), 2426);
-  let ranking = addHourlyRanking(empty(), first, firstHour);
-  const next = parseAllianceSnapshot(apiResponse([
-    apiRow(11, 1),
-    ...Array.from({ length: 9 }, (_, index) => apiRow(index + 1, index + 2)),
-  ]), 2426);
-  ranking = addHourlyRanking(ranking, next, new Date("2026-10-13T02:01:00Z"));
-  const message = formatLeaderboard(next, ranking);
-  const cumulative = message.split("**Cumulative Power**")[1];
-  assert.equal(cumulative.match(/Cumulative rank:/g)?.length, 11);
-  assert.ok(cumulative.includes("Alliance 11 | Cumulative rank: 12"));
-  assert.ok(cumulative.includes("Alliance 10 | Cumulative rank: 21"));
-  const largeRanking = {
-    ...ranking,
-    alliances: Array.from({ length: 100 }, (_, index) => ({
-      id: index + 1, tag: `T${index + 1}`, name: `Alliance ${index + 1}`, total: 12,
-    })),
+test("hourly runs count once, Monday 00:01 posts the weekly final, and 01:01 starts over", async (t) => {
+  const stateFile = tempStateFile(t);
+  const sent: string[] = [];
+  const run = (time: string, ids = [1, 2, 3]) => runHourlyUpdate({
+    now: new Date(time),
+    kingdom: 2426,
+    stateFile,
+    fetchSnapshot: async () => snapshot(ids),
+    send: async (content) => { sent.push(content); },
+  });
+
+  assert.equal(await run("2026-10-18T23:01:00Z"), "posted");
+  assert.equal(await run("2026-10-18T23:25:00Z"), "already-posted");
+  assert.equal(sent.length, 1);
+  assert.ok(sent[0].includes("## Cumulative Power Ranking"));
+
+  await run("2026-10-19T00:01:30Z", [2, 1, 3]);
+  assert.equal(sent.length, 2);
+  assert.ok(sent[1].includes("Weekly Final"));
+  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · 2 hourly updates"));
+  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 3 pts/);
+  assert.equal(loadStandings(stateFile)?.finalPosted, true);
+
+  await run("2026-10-19T01:01:00Z", [3, 2, 1]);
+  assert.equal(sent.length, 3);
+  assert.ok(!sent[2].includes("Weekly Final"));
+  assert.ok(sent[2].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · 1 hourly update "));
+  assert.match(sent[2], /\*\*#1\*\* \[A3\] Alliance 3 — 1 pts/);
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+});
+
+test("a missed Monday 00:01 run still posts last week's final before the new week", async (t) => {
+  const stateFile = tempStateFile(t);
+  const sent: string[] = [];
+  const run = (time: string) => runHourlyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile,
+    fetchSnapshot: async () => snapshot([1, 2]),
+    send: async (content) => { sent.push(content); },
+  });
+  await run("2026-10-18T23:05:00Z");
+  await run("2026-10-19T01:20:00Z");
+  assert.equal(sent.length, 3);
+  assert.ok(sent[1].startsWith("## 🏆 Weekly Final"));
+  assert.ok(sent[1].includes("1 hourly update "));
+  assert.ok(sent[2].includes("## Alliance Power"));
+  assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
+});
+
+test("failed API or Discord requests do not count the hour", async (t) => {
+  const stateFile = tempStateFile(t);
+  const base = {
+    now: new Date("2026-10-13T12:01:00Z"), kingdom: 2426, stateFile,
+    fetchSnapshot: async () => snapshot([1]),
+    send: async () => {},
   };
-  const largeMessage = formatLeaderboard(next, largeRanking);
-  const parts = splitLeaderboardMessages(largeMessage);
-  assert.ok(parts.length > 1);
-  assert.ok(parts.every((part) => part.length <= 2000));
-  assert.equal(parts.join("\n"), largeMessage);
-  assert.equal(parts.join("\n").match(/Cumulative rank:/g)?.length, 100);
-});
-
-test("separate cumulative section sorts lowest first and removes power deltas", () => {
-  const snapshot = parseAllianceSnapshot(apiResponse(
-    Array.from({ length: 12 }, (_, index) => apiRow(index + 1, index + 1)),
-  ), 2426);
-  snapshot.alliances[0].name = "*Winners*";
-  const ranking = addHourlyRanking(empty(), snapshot, firstHour);
-  const message = formatLeaderboard(snapshot, ranking);
-  assert.ok(message.includes("\\*Winners\\*"));
-  assert.ok(message.includes("**Cumulative Power**"));
-  assert.ok(message.includes("Cumulative rank: 1"));
-  assert.ok(!message.includes("Δ"));
-  assert.ok(!message.includes("#11 "));
-  assert.ok(message.includes("2026-10-13 00:41 UTC"));
-  assert.ok(message.length <= 2000);
-  const initialRanking = empty();
-  const initialMessage = formatLeaderboard(snapshot, initialRanking);
-  assert.equal(initialMessage.match(/Cumulative rank: 0/g), null);
-  assert.equal(initialMessage.match(/Cumulative rank: [1-9]\d*/g)?.length, 10);
-  assert.ok(!initialMessage.includes("No hourly updates"));
-  assert.ok(initialMessage.includes("0 hourly updates"));
-  assert.ok(initialMessage.includes("#1 [T1] \\*Winners\\* | Cumulative rank: 1"));
-  assert.ok(initialMessage.includes("#2 [T2] Alliance 2 | Cumulative rank: 2"));
-  assert.equal(initialRanking.updates, 0);
-  assert.deepEqual(initialRanking.alliances, []);
-  const cumulativeText = message.split("**Cumulative Power**")[1];
-  assert.ok(cumulativeText.indexOf("Cumulative rank: 1\n") < cumulativeText.indexOf("Cumulative rank: 2\n"));
-  snapshot.alliances[0].name = "a".repeat(2000);
-  assert.throws(() => formatLeaderboard(snapshot, ranking), /message limit/);
-});
-
-test("authenticated API fetch uses timeout and rejects HTTP, JSON and network failures", async (t) => {
-  const mock = t.mock.method(globalThis, "fetch", async (
-    url: string | URL | Request, options?: RequestInit,
-  ) => {
-    assert.equal(
-      url,
-      "https://api.mightpulse.com/v1/kingdoms/2426/ranks?board=alliance_power&limit=100",
-    );
-    assert.equal(new Headers(options?.headers).get("authorization"), "Bearer test-api-key");
-    assert.ok(options?.signal instanceof AbortSignal);
-    return Response.json(apiResponse());
-  });
-  assert.equal((await fetchAllianceSnapshot(2426, "test-api-key")).alliances.length, 1);
-  await assert.rejects(fetchAllianceSnapshot(0), /KINGDOM/);
-  await assert.rejects(fetchAllianceSnapshot(2426, ""), /MIGHTPULSE_API_KEY/);
-  mock.mock.mockImplementation(async () => new Response("", { status: 503 }));
-  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), /HTTP 503/);
-  mock.mock.mockImplementation(async () => new Response("not JSON"));
-  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), SyntaxError);
-  mock.mock.mockImplementation(async () => {
-    throw new Error("Network unavailable");
-  });
-  await assert.rejects(fetchAllianceSnapshot(2426, "test-api-key"), /Network unavailable/);
-});
-
-test("persists weekly totals, isolates kingdoms and rejects corrupt state", () => {
-  const original = process.cwd();
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cumulative-test-"));
-  try {
-    process.chdir(directory);
-    assert.deepEqual(loadCumulativeRanking(2426, firstHour), empty());
-    const ranking = addHourlyRanking(empty(), parseAllianceSnapshot(apiResponse(), 2426), firstHour);
-    saveCumulativeRanking(ranking);
-    assert.deepEqual(loadCumulativeRanking(2426, firstHour), ranking);
-    assert.equal(loadCumulativeRanking(2446, firstHour).updates, 0);
-    assert.equal(loadCumulativeRanking(2426, new Date("2026-10-19T00:00:59Z")).updates, 1);
-    assert.equal(loadCumulativeRanking(2426, new Date("2026-10-19T00:01:00Z")).updates, 0);
-    fs.writeFileSync(path.resolve("snapshots", "cumulative-ranking-2426.json"), "{}");
-    assert.throws(() => loadCumulativeRanking(2426, firstHour), /Invalid cumulative/);
-  } finally {
-    process.chdir(original);
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-test("only successful scheduled posts count, duplicates and manual posts do not", async (t) => {
-  const original = process.cwd();
-  const originalApiKey = process.env.MIGHTPULSE_API_KEY;
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cumulative-post-test-"));
-  const mock = t.mock.method(globalThis, "fetch", async () => Response.json(apiResponse()));
-  try {
-    process.env.MIGHTPULSE_API_KEY = "test-api-key";
-    process.chdir(directory);
-    await publishLeaderboard(2426, async () => {});
-    assert.ok(!fs.existsSync(path.resolve("snapshots", "cumulative-ranking-2426.json")));
-    await assert.rejects(publishLeaderboard(2426, async () => {
-      throw new Error("Discord failed");
-    }, firstHour), /Discord failed/);
-    assert.equal(loadCumulativeRanking(2426, firstHour).updates, 0);
-    mock.mock.mockImplementation(async () => new Response("", { status: 500 }));
-    await assert.rejects(publishLeaderboard(2426, async () => {
-      assert.fail("Should not send");
-    }, firstHour), /HTTP 500/);
-    assert.equal(loadCumulativeRanking(2426, firstHour).updates, 0);
-    mock.mock.mockImplementation(async () => Response.json(apiResponse()));
-    let scheduledSends = 0;
-    await Promise.all([
-      publishLeaderboard(2426, async () => { scheduledSends++; }, firstHour),
-      publishLeaderboard(2426, async () => { scheduledSends++; }, firstHour),
-      publishLeaderboard(2426, async () => { scheduledSends++; }, new Date("2026-10-13T02:01:00Z")),
-    ]);
-    assert.equal(scheduledSends, 2);
-    assert.equal(loadCumulativeRanking(2426, firstHour).updates, 2);
-    assert.equal(loadCumulativeRanking(2426, firstHour).alliances[0].total, 2);
-    await publishLeaderboard(2426, async () => {});
-    assert.equal(loadCumulativeRanking(2426, firstHour).updates, 2);
-  } finally {
-    process.chdir(original);
-    if (originalApiKey === undefined) delete process.env.MIGHTPULSE_API_KEY;
-    else process.env.MIGHTPULSE_API_KEY = originalApiKey;
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
+  await assert.rejects(runHourlyUpdate({ ...base, fetchSnapshot: async () => { throw new Error("API down"); } }), /API down/);
+  await assert.rejects(runHourlyUpdate({ ...base, send: async () => { throw new Error("Discord down"); } }), /Discord down/);
+  assert.equal(loadStandings(stateFile), null);
+  assert.equal(await runHourlyUpdate(base), "posted");
+  assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-13T12");
 });

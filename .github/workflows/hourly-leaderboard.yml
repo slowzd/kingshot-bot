@@ -1,0 +1,75 @@
+name: Hourly Alliance Leaderboard
+
+on:
+  schedule:
+    - cron: '1 * * * *'
+    # Fallback for when GitHub delays or drops the :01 run; it does nothing if that hour was already posted.
+    - cron: '20 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hourly-alliance-leaderboard
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KINGDOM: ${{ secrets.KINGDOM || '2426' }}
+      STATE_BRANCH: leaderboard-state
+      STATE_FILE: state/leaderboard.json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Load saved standings
+        id: load
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$STATE_FILE")"
+          status=0
+          git ls-remote --exit-code --heads origin "$STATE_BRANCH" > /dev/null || status=$?
+          if [ "$status" -eq 0 ]; then
+            git fetch --depth=1 origin "$STATE_BRANCH:refs/remotes/origin/$STATE_BRANCH"
+            git show "origin/$STATE_BRANCH:leaderboard.json" > "$STATE_FILE"
+          elif [ "$status" -eq 2 ]; then
+            echo "No saved standings yet; starting a new week."
+          else
+            exit "$status"
+          fi
+
+      - name: Post leaderboard
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
+        run: node src/run.ts
+
+      - name: Save standings
+        # Also runs after a partial failure so an already-posted weekly final is not posted twice.
+        if: always() && steps.load.outcome == 'success'
+        run: |
+          set -euo pipefail
+          [ -f "$STATE_FILE" ] || exit 0
+          parent=()
+          if git rev-parse -q --verify "refs/remotes/origin/$STATE_BRANCH" > /dev/null; then
+            if git show "origin/$STATE_BRANCH:leaderboard.json" | cmp -s - "$STATE_FILE"; then
+              echo "Standings unchanged."
+              exit 0
+            fi
+            parent=(-p "origin/$STATE_BRANCH")
+          fi
+          blob=$(git hash-object -w "$STATE_FILE")
+          tree=$(printf '100644 blob %s\tleaderboard.json\n' "$blob" | git mktree)
+          commit=$(git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit-tree "$tree" "${parent[@]}" -m "Update standings")
+          git push origin "$commit:refs/heads/$STATE_BRANCH"
