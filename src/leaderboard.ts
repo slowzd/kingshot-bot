@@ -17,7 +17,7 @@ export function formatLeaderboard(
     return `#${alliance.rank} ${tag}${escapeMarkdown(alliance.name)} | Power: ${alliance.power}`;
   });
   const cumulativeAlliances = cumulative.updates === 0
-    ? topAlliances.map((alliance) => ({ ...alliance, total: 0 }))
+    ? topAlliances.map((alliance) => ({ ...alliance, total: alliance.rank }))
     : [...cumulative.alliances]
       .sort((a, b) => a.total - b.total || a.id - b.id);
   const cumulativeLines = cumulativeAlliances

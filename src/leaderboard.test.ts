@@ -138,10 +138,12 @@ test("separate cumulative section sorts lowest first and removes power deltas", 
   assert.ok(message.length <= 2000);
   const initialRanking = empty();
   const initialMessage = formatLeaderboard(snapshot, initialRanking);
-  assert.equal(initialMessage.match(/Cumulative rank: 0/g)?.length, 10);
+  assert.equal(initialMessage.match(/Cumulative rank: 0/g), null);
+  assert.equal(initialMessage.match(/Cumulative rank: [1-9]\d*/g)?.length, 10);
   assert.ok(!initialMessage.includes("No hourly updates"));
   assert.ok(initialMessage.includes("0 hourly updates"));
-  assert.ok(initialMessage.includes("#1 [T1] \\*Winners\\* | Cumulative rank: 0"));
+  assert.ok(initialMessage.includes("#1 [T1] \\*Winners\\* | Cumulative rank: 1"));
+  assert.ok(initialMessage.includes("#2 [T2] Alliance 2 | Cumulative rank: 2"));
   assert.equal(initialRanking.updates, 0);
   assert.deepEqual(initialRanking.alliances, []);
   const cumulativeText = message.split("**Cumulative Power**")[1];

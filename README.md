@@ -39,7 +39,7 @@ KINGDOM=2426
 ## Cumulative Power
 This separate section sums **rank positions**, not power values. Lower totals are better: three hourly updates in first place give `1 + 1 + 1 = 3`. Every alliance that has entered the top 10 this week is included in the cumulative list, even after leaving the top 10. Totals are sorted lowest first, with alliance ID breaking ties deterministically. Long lists are split across Discord messages without dropping alliances.
 
-Before any hourly updates have been counted, the current top 10 are shown with `Cumulative rank: 0` in their current ranking order. These display-only zeros do not count an update or change saved totals.
+Before any hourly updates have been counted in a new week, the current top 10 are shown with their current alliance rank as the cumulative rank. These display-only ranks do not count an update or change saved totals.
 
 Only successfully posted scheduled hourly updates count, at most once per UTC hourly slot. Startup posts, slash commands, ordinary broadcasts, and manually dispatched workflows only display the totals. No missed hours are invented after downtime.
 
