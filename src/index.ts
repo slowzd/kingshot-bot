@@ -1,20 +1,12 @@
 import "dotenv/config";
-import fs from "node:fs";
-import path from "node:path";
 import {
   Client,
   GatewayIntentBits,
   REST,
   Routes,
   SlashCommandBuilder,
-  Message,
 } from "discord.js";
-import {
-  extractFromEmulator,
-  getConnectedDevice,
-  captureScreenshot,
-  isLeaderboardScreen,
-} from "./emulator.js";
+import { publishLeaderboard } from "./leaderboard.js";
 
 const token = process.env.DISCORD_TOKEN;
 const appId = process.env.DISCORD_CLIENT_ID;
@@ -22,37 +14,41 @@ const guildId = process.env.DISCORD_GUILD_ID;
 const channelId = process.env.DISCORD_CHANNEL_ID;
 const kingdom = Number(process.env.KINGDOM || 2426);
 
-if (!token || !appId || !guildId || !Number.isInteger(kingdom) || kingdom < 1) {
+if (!token || !appId || !guildId || !Number.isSafeInteger(kingdom) || kingdom < 1) {
   throw new Error(
     "Set DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_GUILD_ID and KINGDOM in .env",
   );
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-const command = new SlashCommandBuilder()
+const leaderboardCommand = new SlashCommandBuilder()
   .setName("leaderboard")
   .setDescription(
-    "Retrieve in-game alliance rankings from BlueStacks emulator",
+    "Retrieve in-game alliance rankings from Mightpulse",
+  );
+const postLeaderboardCommand = new SlashCommandBuilder()
+  .setName("post-leaderboard")
+  .setDescription(
+    "Fetch and send the current leaderboard to the configured channel",
   );
 
 await new REST({ version: "10" })
   .setToken(token)
   .put(Routes.applicationGuildCommands(appId, guildId), {
-    body: [command.toJSON()],
+    body: [leaderboardCommand.toJSON(), postLeaderboardCommand.toJSON()],
   });
 
 client.once("clientReady", async () => {
   console.log(
-    `Bot online: ${client.user?.tag} | Kingdom ${kingdom} | /leaderboard (BlueStacks mode)`,
+    `Bot online: ${client.user?.tag} | Kingdom ${kingdom} | /leaderboard, /post-leaderboard (Mightpulse API)`,
   );
 
   if (channelId) {
-    // 1. Post initial snapshot on startup if BlueStacks has the leaderboard open
     try {
       console.log(
-        `Checking emulator on startup to post initial snapshot to channel ${channelId}...`,
+        `Fetching initial Mightpulse snapshot for channel ${channelId}...`,
       );
-      await postLeaderboardSnapshot(channelId, true);
+      await postLeaderboardSnapshot(channelId);
     } catch (err) {
       console.warn(
         "Initial startup snapshot skipped:",
@@ -60,90 +56,40 @@ client.once("clientReady", async () => {
       );
     }
 
-    // 2. Start 15-minute scheduler (:00, :15, :30, :45 of every hour)
-    start15MinuteScheduler(channelId);
+    startHourlyScheduler(channelId);
   }
 });
 
-/**
- * Captures the screen, parses rankings, and sends a snapshot message to Discord.
- */
 async function postLeaderboardSnapshot(
   targetChannelId: string,
-  silentIfNoScreen = false,
-): Promise<boolean> {
-  const device = getConnectedDevice();
-  if (!device) {
-    if (!silentIfNoScreen) {
-      console.warn("BlueStacks device offline.");
-    }
-    return false;
-  }
-
-  const screenshotPath = path.resolve(
-    `snapshots/bluestacks-capture-${Date.now()}.png`,
-  );
-  await captureScreenshot(screenshotPath);
-
-  const isLeaderboard = await isLeaderboardScreen(screenshotPath);
-  if (!isLeaderboard) {
-    if (!silentIfNoScreen) {
-      console.log(
-        "BlueStacks is open, but not currently on the Alliance Leaderboard screen.",
-      );
-    }
-    // Clean up non-leaderboard snapshot
-    if (fs.existsSync(screenshotPath)) fs.unlink(screenshotPath, () => {});
-    return false;
-  }
-
-  const { alliances } = await extractFromEmulator(screenshotPath);
-  if (!alliances.length) {
-    console.warn("On leaderboard screen, but could not parse alliance rows.");
-    return false;
-  }
-
-  const allianceLines = alliances.slice(0, 10).map((r) => {
-    const tagPart = r.tag ? `[${r.tag}] ` : "";
-    return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
-  });
-
-  const updatedTime = new Date().toLocaleTimeString("da-DK", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
-  const messageContent = `**Leaderboard — Kingdom ${kingdom} Top 7 Alliances**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime} UTC*`;
-
+  scheduledAt?: Date,
+): Promise<void> {
   const channel = await client.channels.fetch(targetChannelId);
-  if (!channel || !("send" in channel)) {
-    console.error(
+  if (!channel?.isSendable()) {
+    throw new Error(
       `Channel ${targetChannelId} not found or is not a text channel.`,
     );
-    return false;
   }
 
-  try {
-    const sent: Message = await channel.send({
-      content: messageContent,
+  await publishLeaderboard(kingdom, async (message) => {
+    const sent = await channel.send({
+      content: message,
+      allowedMentions: { parse: [] },
     });
     console.log(
-      `[Snapshot Sent] Posted fresh leaderboard to Discord (Message ID: ${sent.id})`,
+      `[Snapshot Sent] Posted Mightpulse leaderboard to Discord (Message ID: ${sent.id})`,
     );
-    return true;
-  } catch (error) {
-    console.error("Failed to post message to Discord:", error);
-    return false;
-  }
+  }, scheduledAt);
 }
 
 /**
- * Calculates the next scheduled quarter-hour mark string (e.g. "00:15", "00:30", "00:45", "01:00").
+ * Calculates the next hourly update time at UTC :01.
  */
 function getNextScheduledTime(): string {
-  const quarterHourMs = 15 * 60 * 1000;
+  const hourMs = 60 * 60 * 1000;
+  const offsetMs = 60 * 1000;
   const nextTarget = new Date(
-    (Math.floor(Date.now() / quarterHourMs) + 1) * quarterHourMs,
+    (Math.floor((Date.now() - offsetMs) / hourMs) + 1) * hourMs + offsetMs,
   );
   return nextTarget.toLocaleTimeString("da-DK", {
     hour: "2-digit",
@@ -153,22 +99,21 @@ function getNextScheduledTime(): string {
 }
 
 /**
- * Automatically triggers a new update every 15 minutes (:00, :15, :30, :45 of every hour).
+ * Automatically triggers a new update at one minute past each UTC hour.
  */
 let isRunningUpdate = false;
 let lastScheduledSlot = "";
 
-function start15MinuteScheduler(targetChannelId: string) {
+function startHourlyScheduler(targetChannelId: string) {
   console.log(
-    `15-minute leaderboard scheduler active (UTC :00, :15, :30, :45). Next scheduled update at ~${getNextScheduledTime()} UTC`,
+    `Hourly leaderboard scheduler active (UTC :01). Next scheduled update at ~${getNextScheduledTime()} UTC`,
   );
 
   setInterval(async () => {
     const now = new Date();
     const minute = now.getUTCMinutes();
 
-    // Trigger on every 15-minute mark: 0, 15, 30, 45
-    if (minute % 15 === 0) {
+    if (minute === 1) {
       const slotKey = now.toISOString().slice(0, 16);
 
       if (lastScheduledSlot !== slotKey && !isRunningUpdate) {
@@ -180,16 +125,18 @@ function start15MinuteScheduler(targetChannelId: string) {
           timeZone: "UTC",
         });
         console.log(
-          `\n[Quarter-Hour Trigger: ${timeStr} UTC] Starting 15-minute scheduled update...`,
+          `\n[Hourly Trigger: ${timeStr} UTC] Starting hourly scheduled update...`,
         );
 
         try {
-          await postLeaderboardSnapshot(targetChannelId, false);
+          await postLeaderboardSnapshot(targetChannelId, now);
         } catch (err) {
-          console.error("Scheduled 15-minute update failed:", err);
+          console.error("Scheduled hourly update failed:", err);
         } finally {
           isRunningUpdate = false;
-          console.log(`Next scheduled update at ~${getNextScheduledTime()} UTC`);
+          console.log(
+            `Next scheduled update at ~${getNextScheduledTime()} UTC`,
+          );
         }
       }
     }
@@ -199,43 +146,39 @@ function start15MinuteScheduler(targetChannelId: string) {
 client.on("interactionCreate", async (interaction) => {
   if (
     !interaction.isChatInputCommand() ||
-    interaction.commandName !== "leaderboard"
+    !["leaderboard", "post-leaderboard"].includes(interaction.commandName)
   )
     return;
   try {
+    if (interaction.commandName === "post-leaderboard") {
+      await interaction.deferReply({ ephemeral: true });
+      if (!channelId) {
+        await interaction.editReply(
+          "DISCORD_CHANNEL_ID is not configured, so I cannot post the leaderboard.",
+        );
+        return;
+      }
+
+      await postLeaderboardSnapshot(channelId);
+      await interaction.editReply(
+        "The current Mightpulse leaderboard snapshot was sent to the configured Discord channel.",
+      );
+      return;
+    }
+
     await interaction.deferReply();
-    const device = getConnectedDevice();
-    if (!device) {
-      await interaction.editReply(
-        "BlueStacks is not connected or ADB is offline. Please ensure BlueStacks 5 is open with ADB enabled and Kingshot is on the leaderboard screen.",
-      );
-      return;
-    }
-
-    const { alliances, screenshotPath } = await extractFromEmulator();
-
-    if (!alliances.length) {
-      await interaction.editReply(
-        "Could not detect alliance rankings on the BlueStacks screen. Make sure the in-game Alliance Leaderboard is currently visible.",
-      );
-      return;
-    }
-
-    const topAlliances = alliances.slice(0, 10);
-    const allianceLines = topAlliances.map((r) => {
-      const tagPart = r.tag ? `[${r.tag}] ` : "";
-      return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
-    });
-
-    const updatedTime = new Date().toLocaleTimeString("da-DK", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    });
-    const message = `**Kingdom ${kingdom} — Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Updated at ${updatedTime} UTC*`;
-
-    await interaction.editReply({
-      content: message,
+    let firstMessage = true;
+    await publishLeaderboard(kingdom, async (message) => {
+      const options = {
+        content: message,
+        allowedMentions: { parse: [] },
+      };
+      if (firstMessage) {
+        await interaction.editReply(options);
+        firstMessage = false;
+      } else {
+        await interaction.followUp(options);
+      }
     });
   } catch (error) {
     console.error(error);

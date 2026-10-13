@@ -1,71 +1,47 @@
 import "dotenv/config";
-import fs from "node:fs";
-import { Client, GatewayIntentBits, Message } from "discord.js";
-import { getConnectedDevice, extractFromEmulator } from "./emulator.js";
+import { Client, GatewayIntentBits } from "discord.js";
+import { publishLeaderboard } from "./leaderboard.js";
 
 const token = process.env.DISCORD_TOKEN;
 const channelId = process.env.DISCORD_CHANNEL_ID;
 const kingdom = Number(process.env.KINGDOM || 2426);
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== "--scheduled")) {
+  throw new Error("Only the optional --scheduled broadcast argument is supported.");
+}
+const scheduledAt = args.includes("--scheduled") ? new Date() : undefined;
 
-if (!token || !channelId) {
-  throw new Error("DISCORD_TOKEN and DISCORD_CHANNEL_ID must be set in environment variables.");
+if (!token || !channelId || !Number.isSafeInteger(kingdom) || kingdom < 1) {
+  throw new Error("Set DISCORD_TOKEN, DISCORD_CHANNEL_ID and a positive integer KINGDOM.");
 }
 
-console.log(`Starting broadcast for Kingdom ${kingdom} from BlueStacks emulator to channel ${channelId}...`);
-
-const device = getConnectedDevice();
-if (!device) {
-  console.error("No active BlueStacks device detected via ADB!");
-  console.error("Make sure BlueStacks 5 is open, ADB is enabled in Settings -> Advanced, and Kingshot is on the leaderboard screen.");
-  process.exit(1);
-}
-
-console.log(`Connected to BlueStacks device: ${device}`);
-console.log("Extracting leaderboard data from emulator screen...");
-
-const { alliances, screenshotPath } = await extractFromEmulator();
-
-if (!alliances.length) {
-  console.error(`No alliance rows could be parsed from the emulator screenshot (${screenshotPath}).`);
-  process.exit(1);
-}
-
-const topAlliances = alliances.slice(0, 10);
-const allianceLines = topAlliances.map((r) => {
-  const tagPart = r.tag ? `[${r.tag}] ` : "";
-  return `#${r.rank} ${tagPart}${r.name} | Power: ${r.power}`;
-});
-
-const updatedTime = new Date().toLocaleTimeString("da-DK", {
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-const message = `**Live Leaderboard — Kingdom ${kingdom} Top 10 Alliances (In-Game Live)**\n${allianceLines.join("\n")}\n\n*Opdateret kl. ${updatedTime} UTC*`;
+console.log(`Starting Mightpulse broadcast for Kingdom ${kingdom} to channel ${channelId}...`);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-
-await client.login(token);
-
-const channel = await client.channels.fetch(channelId);
-if (!channel || !("send" in channel)) {
-  throw new Error(`Channel ${channelId} not found or is not a text channel.`);
-}
-
-let sent: Message;
 try {
-  sent = await channel.send({
-    content: message,
-  });
-} catch (error) {
-  if (error instanceof Error && "code" in error && error.code === 50013) {
-    throw new Error(
-      `Discord denied permission to send in channel ${channelId}. Grant the bot View Channel and Send Messages permissions for that channel, then rerun the workflow.`,
-    );
+  await client.login(token);
+  const channel = await client.channels.fetch(channelId);
+  if (!channel?.isSendable()) {
+    throw new Error(`Channel ${channelId} not found or is not a text channel.`);
   }
-  throw error;
-}
-console.log(`Sent new message (ID: ${sent.id}).`);
 
-await client.destroy();
-process.exit(0);
+  await publishLeaderboard(kingdom, async (message) => {
+    try {
+      const sent = await channel.send({
+        content: message,
+        allowedMentions: { parse: [] },
+      });
+      console.log(`Sent new message (ID: ${sent.id}).`);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === 50013) {
+        throw new Error(
+          `Discord denied permission to send in channel ${channelId}. Grant the bot View Channel and Send Messages permissions, then rerun the broadcast.`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+  }, scheduledAt);
+} finally {
+  await client.destroy();
+}
