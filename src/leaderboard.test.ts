@@ -217,11 +217,13 @@ test("only successful scheduled posts count, duplicates and manual posts do not"
     }, firstHour), /HTTP 500/);
     assert.equal(loadCumulativeRanking(2426, firstHour).updates, 0);
     mock.mock.mockImplementation(async () => Response.json(apiResponse()));
+    let scheduledSends = 0;
     await Promise.all([
-      publishLeaderboard(2426, async () => {}, firstHour),
-      publishLeaderboard(2426, async () => {}, firstHour),
-      publishLeaderboard(2426, async () => {}, new Date("2026-10-13T02:01:00Z")),
+      publishLeaderboard(2426, async () => { scheduledSends++; }, firstHour),
+      publishLeaderboard(2426, async () => { scheduledSends++; }, firstHour),
+      publishLeaderboard(2426, async () => { scheduledSends++; }, new Date("2026-10-13T02:01:00Z")),
     ]);
+    assert.equal(scheduledSends, 2);
     assert.equal(loadCumulativeRanking(2426, firstHour).updates, 2);
     assert.equal(loadCumulativeRanking(2426, firstHour).alliances[0].total, 2);
     await publishLeaderboard(2426, async () => {});

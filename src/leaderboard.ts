@@ -64,6 +64,7 @@ export function publishLeaderboard(
     const snapshot = await fetchAllianceSnapshot(kingdom);
     const previous = loadCumulativeRanking(kingdom, now);
     const cumulative = scheduledAt ? addHourlyRanking(previous, snapshot, now) : previous;
+    if (scheduledAt && cumulative === previous) return;
     const message = formatLeaderboard(snapshot, cumulative);
     for (const part of splitLeaderboardMessages(message)) {
       await send(part);

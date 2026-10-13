@@ -2,8 +2,9 @@ name: Mightpulse Leaderboard Broadcast
 
 on:
   schedule:
-    # One minute past each hour, in UTC.
+    # The second trigger is a fallback if GitHub delays or skips the first.
     - cron: '1 * * * *'
+    - cron: '31 * * * *'
   workflow_dispatch:
 
 concurrency:
