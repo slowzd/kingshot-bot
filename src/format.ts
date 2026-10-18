@@ -42,7 +42,7 @@ function weekRange(week: WeekStandings): string {
 }
 
 function updatesText(week: WeekStandings): string {
-  return `${week.updates} daily update${week.updates === 1 ? "" : "s"}`;
+  return `Calculated from ${week.updates} daily update${week.updates === 1 ? "" : "s"}`;
 }
 
 function footer(snapshot: PowerSnapshot, hour: Date): string {
