@@ -2,395 +2,395 @@
 export const snapshotLog = {
   "kingdom": 2426,
   "latest": {
-    "update": "2026-10-18T00:01:00.000Z",
-    "fetchedAt": "2026-10-18T00:01:16.268Z",
-    "apiCapturedAt": "2026-10-17T00:41:41.322Z",
-    "apiAgeMinutes": 1400,
+    "update": "2026-10-18T02:01:00.000Z",
+    "fetchedAt": "2026-10-18T02:01:24.250Z",
+    "apiCapturedAt": "2026-10-18T00:41:38.928Z",
+    "apiAgeMinutes": 80,
     "alliances": [
       {
         "rank": 1,
-        "id": 243500078,
-        "tag": "WIN",
-        "name": "Winners",
-        "power": 3679452020
-      },
-      {
-        "rank": 2,
         "id": 243500085,
         "tag": "WTR",
         "name": "Winterfell",
-        "power": 3621015648
+        "power": 3742771164
+      },
+      {
+        "rank": 2,
+        "id": 243500078,
+        "tag": "WIN",
+        "name": "Winners",
+        "power": 3733564148
       },
       {
         "rank": 3,
         "id": 243500008,
         "tag": "RxR",
         "name": "RisexRanger",
-        "power": 3354004528
+        "power": 3463610830
       },
       {
         "rank": 4,
         "id": 243500004,
         "tag": "CLM",
         "name": "CalmDown",
-        "power": 3051208504
+        "power": 3081235719
       },
       {
         "rank": 5,
         "id": 243500045,
         "tag": "SAO",
         "name": "StrongerAsOne",
-        "power": 2280435676
+        "power": 2301472382
       },
       {
         "rank": 6,
         "id": 243500086,
         "tag": "WRS",
         "name": "WarriorsS",
-        "power": 2092285508
+        "power": 2148166863
       },
       {
         "rank": 7,
         "id": 243500113,
         "tag": "ZYN",
         "name": "ZYRON",
-        "power": 1931467761
+        "power": 1907483571
       },
       {
         "rank": 8,
         "id": 243500119,
         "tag": "Win",
         "name": "Win",
-        "power": 1613724392
+        "power": 1627415826
       },
       {
         "rank": 9,
-        "id": 243500353,
-        "tag": "BET",
-        "name": "Besties",
-        "power": 1543936969
-      },
-      {
-        "rank": 10,
-        "id": 243500325,
-        "tag": "xRx",
-        "name": "FAFO",
-        "power": 1531336132
-      },
-      {
-        "rank": 11,
         "id": 243500002,
         "tag": "STC",
         "name": "Sthtoconsider",
-        "power": 1518716121
+        "power": 1582906942
+      },
+      {
+        "rank": 10,
+        "id": 243500353,
+        "tag": "BET",
+        "name": "Besties",
+        "power": 1570924834
+      },
+      {
+        "rank": 11,
+        "id": 243500325,
+        "tag": "xRx",
+        "name": "FAFO",
+        "power": 1538843547
       },
       {
         "rank": 12,
         "id": 243500016,
         "tag": "Clm",
         "name": "CLMacademy",
-        "power": 1439000456
+        "power": 1457995533
       },
       {
         "rank": 13,
         "id": 243500017,
         "tag": "Sao",
         "name": "SAOAcademie",
-        "power": 1211478306
+        "power": 1098101976
       },
       {
         "rank": 14,
         "id": 243500746,
         "tag": "LFG",
         "name": "BestAlliance",
-        "power": 1042357601
+        "power": 1026093328
       },
       {
         "rank": 15,
         "id": 243500023,
         "tag": "RBL",
         "name": "REBELS",
-        "power": 670937447
+        "power": 659525315
       },
       {
         "rank": 16,
         "id": 243500248,
         "tag": "bet",
         "name": "BestAcademy",
-        "power": 499977219
+        "power": 504205600
       },
       {
         "rank": 17,
         "id": 243500518,
         "tag": "SPA",
         "name": "ESPAÑA",
-        "power": 354372902
+        "power": 362325122
       },
       {
         "rank": 18,
         "id": 243500643,
         "tag": "VHh",
         "name": "AlwaysACTIVE",
-        "power": 271434676
+        "power": 279577743
       },
       {
         "rank": 19,
         "id": 243500915,
         "tag": "DxC",
         "name": "FIGHTER",
-        "power": 260938724
+        "power": 273666889
       },
       {
         "rank": 20,
         "id": 243500231,
         "tag": "RGN",
         "name": "RägNärøK",
-        "power": 253713593
+        "power": 254403688
       },
       {
         "rank": 21,
         "id": 243500234,
         "tag": "RMP",
         "name": "Russianmachine",
-        "power": 243406401
+        "power": 245710640
       },
       {
         "rank": 22,
         "id": 243500402,
         "tag": "aHD",
         "name": "MaKaMa",
-        "power": 200555505
+        "power": 205450095
       },
       {
         "rank": 23,
         "id": 243500525,
         "tag": "rxr",
         "name": "RxR×Academy",
-        "power": 197101083
+        "power": 198439654
       },
       {
         "rank": 24,
-        "id": 243500723,
-        "tag": "KIL",
-        "name": "KINGOFLEAGUE",
-        "power": 184381341
-      },
-      {
-        "rank": 25,
-        "id": 243500043,
-        "tag": "VKN",
-        "name": "VikingValhalla",
-        "power": 178706683
-      },
-      {
-        "rank": 26,
         "id": 243500437,
         "tag": "MVL",
         "name": "MarvelUNT",
-        "power": 165418770
+        "power": 189575941
+      },
+      {
+        "rank": 25,
+        "id": 243500723,
+        "tag": "KIL",
+        "name": "KINGOFLEAGUE",
+        "power": 187327996
+      },
+      {
+        "rank": 26,
+        "id": 243500043,
+        "tag": "VKN",
+        "name": "VikingValhalla",
+        "power": 170680305
       },
       {
         "rank": 27,
         "id": 243500061,
         "tag": "daX",
         "name": "NoooBzzz",
-        "power": 146782884
+        "power": 147993139
       },
       {
         "rank": 28,
-        "id": 243500583,
-        "tag": "WMG",
-        "name": "RexOfStock",
-        "power": 135934206
-      },
-      {
-        "rank": 29,
         "id": 243500067,
         "tag": "Pol",
         "name": "Polska",
-        "power": 133373638
+        "power": 138193154
+      },
+      {
+        "rank": 29,
+        "id": 243500583,
+        "tag": "WMG",
+        "name": "RexOfStock",
+        "power": 136482876
       },
       {
         "rank": 30,
         "id": 243500454,
         "tag": "jYx",
         "name": "CePrimoo",
-        "power": 132119407
+        "power": 135183406
       },
       {
         "rank": 31,
         "id": 243500264,
         "tag": "qZa",
         "name": "GRIMMSTERS",
-        "power": 131439323
+        "power": 133031645
       },
       {
         "rank": 32,
-        "id": 243500290,
-        "tag": "mpt",
-        "name": "皇majestic",
-        "power": 126518326
-      },
-      {
-        "rank": 33,
         "id": 243500349,
         "tag": "DXA",
         "name": "Dutchwar",
-        "power": 126215948
+        "power": 127056816
       },
       {
-        "rank": 34,
+        "rank": 33,
         "id": 243500445,
         "tag": "BCV",
         "name": "Sparta",
-        "power": 126113292
+        "power": 126239175
+      },
+      {
+        "rank": 34,
+        "id": 243500774,
+        "tag": "hfv",
+        "name": "MagnificAliados",
+        "power": 124405630
       },
       {
         "rank": 35,
         "id": 243500225,
         "tag": "abX",
         "name": "poderosa",
-        "power": 122791512
+        "power": 124162596
       },
       {
         "rank": 36,
-        "id": 243500774,
-        "tag": "hfv",
-        "name": "MagnificAliados",
-        "power": 122141081
+        "id": 243500290,
+        "tag": "mpt",
+        "name": "皇majestic",
+        "power": 119442531
       },
       {
         "rank": 37,
         "id": 243500316,
         "tag": "HQm",
         "name": "×夜無寂×",
-        "power": 118099537
+        "power": 118637860
       },
       {
         "rank": 38,
         "id": 243500581,
         "tag": "XjQ",
         "name": "ImperialWars",
-        "power": 114248235
+        "power": 116880422
       },
       {
         "rank": 39,
         "id": 243500447,
         "tag": "wzs",
         "name": "Korea",
-        "power": 111507695
+        "power": 113903640
       },
       {
         "rank": 40,
         "id": 243500478,
         "tag": "nZs",
         "name": "Wolf",
-        "power": 108591709
+        "power": 108816598
       },
       {
         "rank": 41,
         "id": 243500103,
         "tag": "PRO",
         "name": "EliteDefenders",
-        "power": 106755513
+        "power": 107636780
       },
       {
         "rank": 42,
-        "id": 243500095,
-        "tag": "YMF",
-        "name": "AKHİLAl",
-        "power": 103295832
-      },
-      {
-        "rank": 43,
         "id": 243500721,
         "tag": "tJz",
         "name": "RTP",
-        "power": 101098119
+        "power": 102455604
       },
       {
-        "rank": 44,
+        "rank": 43,
         "id": 243500005,
         "tag": "ZEN",
         "name": "ZENEX",
-        "power": 99635602
+        "power": 101902819
+      },
+      {
+        "rank": 44,
+        "id": 243500095,
+        "tag": "YMF",
+        "name": "AKHİLAl",
+        "power": 101803322
       },
       {
         "rank": 45,
         "id": 243500001,
         "tag": "HUN",
         "name": "LOSTHUNTERS",
-        "power": 95151470
+        "power": 95551742
       },
       {
         "rank": 46,
         "id": 243500660,
         "tag": "YWB",
         "name": "AlianceContrAtak",
-        "power": 92544654
+        "power": 94022084
       },
       {
         "rank": 47,
         "id": 243500372,
         "tag": "NWH",
         "name": "Goveners",
-        "power": 90064476
+        "power": 91133989
       },
       {
         "rank": 48,
         "id": 243500205,
         "tag": "zwT",
         "name": "казахстан",
-        "power": 86630409
+        "power": 87534199
       },
       {
         "rank": 49,
         "id": 243500204,
         "tag": "DRK",
         "name": "DragonKiller",
-        "power": 81379268
+        "power": 81205317
       },
       {
         "rank": 50,
         "id": 243500427,
         "tag": "KLP",
         "name": "kelapamuda",
-        "power": 78237213
+        "power": 78345566
       },
       {
         "rank": 51,
         "id": 243500265,
         "tag": "HzM",
         "name": "Nicegame",
-        "power": 76867076
+        "power": 78063410
       },
       {
         "rank": 52,
         "id": 243500094,
         "tag": "HjT",
         "name": "Talquistan",
-        "power": 75587789
+        "power": 76234821
       },
       {
         "rank": 53,
         "id": 243500328,
         "tag": "KTc",
         "name": "Ithong",
-        "power": 75492130
+        "power": 75802694
       },
       {
         "rank": 54,
         "id": 243500420,
         "tag": "BOO",
         "name": "Bleh",
-        "power": 75240929
+        "power": 75634760
       },
       {
         "rank": 55,
         "id": 243500640,
         "tag": "RWp",
         "name": "TheDarkOrder",
-        "power": 70932760
+        "power": 71533008
       },
       {
         "rank": 56,
@@ -404,42 +404,42 @@ export const snapshotLog = {
         "id": 243500268,
         "tag": "ind",
         "name": "Topper",
-        "power": 70290614
+        "power": 70545074
       },
       {
         "rank": 58,
         "id": 243500601,
         "tag": "CaK",
         "name": "caca",
-        "power": 69995354
+        "power": 70469719
       },
       {
         "rank": 59,
         "id": 243500096,
         "tag": "jva",
         "name": "Greenland",
-        "power": 69246329
+        "power": 70323455
       },
       {
         "rank": 60,
         "id": 243500433,
         "tag": "tQa",
         "name": "Jbeladine",
-        "power": 69040268
+        "power": 69112933
       },
       {
         "rank": 61,
         "id": 243500622,
         "tag": "dwJ",
         "name": "الاندلس",
-        "power": 67797098
+        "power": 68787506
       },
       {
         "rank": 62,
         "id": 243500284,
         "tag": "EWS",
         "name": "HARSH",
-        "power": 65589361
+        "power": 66372318
       },
       {
         "rank": 63,
@@ -460,77 +460,77 @@ export const snapshotLog = {
         "id": 243500057,
         "tag": "aup",
         "name": "ZFR",
-        "power": 62066194
+        "power": 62215071
       },
       {
         "rank": 66,
         "id": 243500683,
         "tag": "Csv",
         "name": "Україна",
-        "power": 61005847
+        "power": 61661203
       },
       {
         "rank": 67,
         "id": 243500080,
         "tag": "fFd",
         "name": "USAA",
-        "power": 60910740
+        "power": 61141237
       },
       {
         "rank": 68,
         "id": 243500033,
         "tag": "RED",
         "name": "LosIlluminatis",
-        "power": 58311431
+        "power": 58657438
       },
       {
         "rank": 69,
         "id": 243500287,
         "tag": "hmz",
         "name": "Kkk",
-        "power": 56602151
+        "power": 56610151
       },
       {
         "rank": 70,
         "id": 243500110,
         "tag": "PbC",
         "name": "Partizan",
-        "power": 54972518
+        "power": 55271721
       },
       {
         "rank": 71,
         "id": 243500155,
         "tag": "npw",
         "name": "Retribution",
-        "power": 54803844
+        "power": 54848924
       },
       {
         "rank": 72,
         "id": 243500471,
         "tag": "aRJ",
         "name": "Feather",
-        "power": 54607584
+        "power": 54776427
       },
       {
         "rank": 73,
-        "id": 243500309,
-        "tag": "BRc",
-        "name": "TheFalcons",
-        "power": 54252286
-      },
-      {
-        "rank": 74,
         "id": 243500301,
         "tag": "YGy",
         "name": "LOST",
-        "power": 54122202
+        "power": 54767229
+      },
+      {
+        "rank": 74,
+        "id": 243500309,
+        "tag": "BRc",
+        "name": "TheFalcons",
+        "power": 54544029
       },
       {
         "rank": 75,
         "id": 243500515,
         "tag": "MJX",
         "name": "Wolfborne",
-        "power": 53238910
+        "power": 53287024
       },
       {
         "rank": 76,
@@ -541,157 +541,157 @@ export const snapshotLog = {
       },
       {
         "rank": 77,
-        "id": 243500363,
-        "tag": "SOL",
-        "name": "SOLIS",
-        "power": 50710431
-      },
-      {
-        "rank": 78,
         "id": 243500613,
         "tag": "Hcy",
         "name": "RB1689LBC",
-        "power": 50364687
+        "power": 50478709
+      },
+      {
+        "rank": 78,
+        "id": 243500363,
+        "tag": "SOL",
+        "name": "SOLIS",
+        "power": 50371389
       },
       {
         "rank": 79,
+        "id": 243500019,
+        "tag": "MfS",
+        "name": "Heros",
+        "power": 48590647
+      },
+      {
+        "rank": 80,
         "id": 243500071,
         "tag": "SpR",
         "name": "SPQR",
         "power": 48499157
       },
       {
-        "rank": 80,
-        "id": 243500019,
-        "tag": "MfS",
-        "name": "Heros",
-        "power": 48430605
-      },
-      {
         "rank": 81,
         "id": 243500154,
         "tag": "IMP",
         "name": "GREEK",
-        "power": 48323763
+        "power": 48468504
       },
       {
         "rank": 82,
         "id": 243500258,
         "tag": "VKG",
         "name": "THEVIKINGS",
-        "power": 48173125
+        "power": 48185706
       },
       {
         "rank": 83,
         "id": 243500286,
         "tag": "MZt",
         "name": "GermanPower",
-        "power": 46273199
+        "power": 46372041
       },
       {
         "rank": 84,
         "id": 243500739,
         "tag": "JWs",
         "name": "WTF",
-        "power": 45089214
+        "power": 45925099
       },
       {
         "rank": 85,
+        "id": 243500201,
+        "tag": "WQT",
+        "name": "Raizen",
+        "power": 44418477
+      },
+      {
+        "rank": 86,
         "id": 243500222,
         "tag": "GSb",
         "name": "freeworld",
         "power": 44390940
       },
       {
-        "rank": 86,
-        "id": 243500201,
-        "tag": "WQT",
-        "name": "Raizen",
-        "power": 44345766
-      },
-      {
         "rank": 87,
-        "id": 243500055,
-        "tag": "eBQ",
-        "name": "conquistadores",
-        "power": 43142164
-      },
-      {
-        "rank": 88,
-        "id": 243500986,
-        "tag": "mRk",
-        "name": "Rip",
-        "power": 42903132
-      },
-      {
-        "rank": 89,
         "id": 243500199,
         "tag": "UfY",
         "name": "Bloop",
-        "power": 42632833
+        "power": 43729288
       },
       {
-        "rank": 90,
+        "rank": 88,
+        "id": 243500055,
+        "tag": "eBQ",
+        "name": "conquistadores",
+        "power": 43556747
+      },
+      {
+        "rank": 89,
         "id": 243500098,
         "tag": "Msf",
         "name": "Mischievous",
         "power": 42068570
       },
       {
-        "rank": 91,
+        "rank": 90,
         "id": 243500224,
         "tag": "fAN",
         "name": "Kingslayer",
-        "power": 41583317
+        "power": 41900531
       },
       {
-        "rank": 92,
+        "rank": 91,
         "id": 243500602,
         "tag": "yEZ",
         "name": "BARBARBARIANS",
         "power": 41194203
       },
       {
-        "rank": 93,
+        "rank": 92,
         "id": 243500494,
         "tag": "TAA",
         "name": "TiredAssAdults",
-        "power": 41055108
+        "power": 41102098
       },
       {
-        "rank": 94,
+        "rank": 93,
         "id": 243500373,
         "tag": "ALC",
         "name": "Alcesia",
         "power": 40596864
       },
       {
-        "rank": 95,
+        "rank": 94,
         "id": 243500104,
         "tag": "Ekz",
         "name": "Olive",
         "power": 40318463
       },
       {
-        "rank": 96,
+        "rank": 95,
         "id": 243500040,
         "tag": "SAW",
         "name": "FATİHSULTAN",
-        "power": 39781929
+        "power": 39810992
       },
       {
-        "rank": 97,
+        "rank": 96,
         "id": 243500455,
         "tag": "VMx",
         "name": "UkrainianTheme",
         "power": 38168851
       },
       {
-        "rank": 98,
+        "rank": 97,
         "id": 243500412,
         "tag": "Fzz",
         "name": "NovaAliança",
-        "power": 35999887
+        "power": 35334856
+      },
+      {
+        "rank": 98,
+        "id": 243500039,
+        "tag": "Lol",
+        "name": "Smiley",
+        "power": 34716473
       },
       {
         "rank": 99,
@@ -702,14 +702,20 @@ export const snapshotLog = {
       },
       {
         "rank": 100,
-        "id": 243500039,
-        "tag": "Lol",
-        "name": "Smiley",
-        "power": 34482392
+        "id": 243500502,
+        "tag": "Cat",
+        "name": "catacademy",
+        "power": 34431432
       }
     ]
   },
   "history": [
+    {
+      "update": "2026-10-18T02:01:00.000Z",
+      "fetchedAt": "2026-10-18T02:01:24.250Z",
+      "apiCapturedAt": "2026-10-18T00:41:38.928Z",
+      "apiAgeMinutes": 80
+    },
     {
       "update": "2026-10-18T00:01:00.000Z",
       "fetchedAt": "2026-10-18T00:01:16.268Z",
