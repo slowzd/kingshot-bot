@@ -1,8 +1,8 @@
-name: Hourly Alliance Leaderboard
+name: Daily Alliance Leaderboard
 
 on:
   # Triggered every hour at XX:01 UTC by an external scheduler (cron-job.org) through the GitHub API,
-  # because GitHub's own schedule was unreliable. Every run posts and counts, so do not add a schedule here too.
+  # Checks the 01:01 UTC daily slot with a 23-hour guard and Monday 00:01 weekly summary.
   workflow_dispatch:
 
 permissions:

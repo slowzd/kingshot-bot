@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { PowerSnapshot } from "./mightpulse.ts";
-import { hourKey, weekStartHour } from "./time.ts";
+import { hourKey, weekStart } from "./time.ts";
 
 export interface Standing {
   id: number;
@@ -15,9 +15,11 @@ export interface WeekStandings {
   kingdom: number;
   weekStart: string;
   updates: number;
-  /** Points an alliance would have collected if it was unranked in every counted hour. */
+  /** Points an alliance would have collected if it was unranked in every counted update. */
   absentPoints: number;
   lastHour: string | null;
+  /** Actual run time of the last successful daily update; absent in legacy hourly state. */
+  lastPostedAt?: string;
   finalPosted: boolean;
   alliances: Standing[];
 }
@@ -26,7 +28,7 @@ export function createWeek(kingdom: number, hour: Date): WeekStandings {
   return {
     version: 1,
     kingdom,
-    weekStart: weekStartHour(hour).toISOString(),
+    weekStart: weekStart(hour).toISOString(),
     updates: 0,
     absentPoints: 0,
     lastHour: null,
@@ -37,10 +39,10 @@ export function createWeek(kingdom: number, hour: Date): WeekStandings {
 
 /**
  * Adds each alliance's current rank as points; alliances outside the API list get last rank + 1.
- * Every call counts, including repeated calls for the same hour.
+ * The daily runner guards against counting the same slot twice.
  */
-export function addHour(week: WeekStandings, snapshot: PowerSnapshot, hour: Date): WeekStandings {
-  if (week.kingdom !== snapshot.kingdom || week.weekStart !== weekStartHour(hour).toISOString()) {
+export function addUpdate(week: WeekStandings, snapshot: PowerSnapshot, hour: Date): WeekStandings {
+  if (week.kingdom !== snapshot.kingdom || week.weekStart !== weekStart(hour).toISOString()) {
     throw new Error("Standings do not belong to this kingdom and week.");
   }
   const key = hourKey(hour);
@@ -107,6 +109,7 @@ export function loadStandings(file: string): WeekStandings | null {
     !isCount(data.updates) ||
     !isCount(data.absentPoints) ||
     !(data.lastHour === null || (typeof data.lastHour === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(data.lastHour))) ||
+    !(data.lastPostedAt === undefined || (typeof data.lastPostedAt === "string" && Number.isFinite(Date.parse(data.lastPostedAt)))) ||
     typeof data.finalPosted !== "boolean" ||
     !Array.isArray(data.alliances) ||
     !data.alliances.every((row) =>

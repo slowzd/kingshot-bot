@@ -1,6 +1,6 @@
 import type { PowerSnapshot } from "./mightpulse.ts";
 import { cumulativeRanking, type WeekStandings } from "./standings.ts";
-import { formatUtc, postTime, weekFinalHour } from "./time.ts";
+import { formatUtc, weekFinal } from "./time.ts";
 
 const LIST_SIZE = 10;
 const DISCORD_LIMIT = 2000;
@@ -37,18 +37,19 @@ function cumulativeLines(week: WeekStandings): string[] {
 
 function weekRange(week: WeekStandings): string {
   const start = new Date(week.weekStart);
-  return `${formatUtc(postTime(start))} – ${formatUtc(postTime(weekFinalHour(start)))} UTC`;
+  const firstUpdate = new Date(start.getTime() + 60_000);
+  return `${formatUtc(firstUpdate)} – ${formatUtc(weekFinal(start))} UTC`;
 }
 
 function updatesText(week: WeekStandings): string {
-  return `${week.updates} hourly update${week.updates === 1 ? "" : "s"}`;
+  return `${week.updates} daily update${week.updates === 1 ? "" : "s"}`;
 }
 
 function footer(snapshot: PowerSnapshot, hour: Date): string {
-  return `-# Update ${formatUtc(postTime(hour))} UTC`;
+  return `-# Update ${formatUtc(hour)} UTC`;
 }
 
-export function hourlyMessage(
+export function dailyMessage(
   snapshot: PowerSnapshot,
   week: WeekStandings,
   hour: Date,
@@ -56,31 +57,19 @@ export function hourlyMessage(
   return [
     ...powerSection(snapshot),
     "",
-    "## Cumulative Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · Points = rank held each hour`,
+    "## Daily Cumulative Ranking",
+    `-# ${weekRange(week)} · ${updatesText(week)} · Points = rank held each daily update`,
     ...cumulativeLines(week),
     "",
     footer(snapshot, hour),
   ].join("\n");
 }
 
-export function weeklyFinalMessage(
-  week: WeekStandings,
-  snapshot?: PowerSnapshot,
-  hour?: Date,
-): string {
-  const final = [
-    "## 🏆 Weekly Final — Cumulative Ranking",
+export function weeklyFinalMessage(week: WeekStandings): string {
+  return [
+    "## 🏆 Weekly Cumulative Ranking",
     `-# ${weekRange(week)} · ${updatesText(week)} · New ranking starts Monday 01:01 UTC`,
     ...cumulativeLines(week),
-  ];
-  if (!snapshot || !hour) return final.join("\n");
-  return [
-    ...powerSection(snapshot),
-    "",
-    ...final,
-    "",
-    footer(snapshot, hour),
   ].join("\n");
 }
 

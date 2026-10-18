@@ -3,37 +3,30 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** The UTC hour whose XX:01 post is due at `now`. */
-export function dueHour(now: Date): Date {
-  return new Date(Math.floor((now.getTime() - MINUTE_MS) / HOUR_MS) * HOUR_MS);
+/** Latest daily slot, fixed at 01:01 UTC, including catch-up after midnight. */
+export function dueUpdate(now: Date): Date {
+  const slot = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 1, 1));
+  if (now < slot) slot.setUTCDate(slot.getUTCDate() - 1);
+  return slot;
 }
 
 export function hourKey(hour: Date): string {
   return hour.toISOString().slice(0, 13);
 }
 
-export function postTime(hour: Date): Date {
-  return new Date(hour.getTime() + MINUTE_MS);
-}
-
-/** Weeks run from Monday 01:01 UTC through the following Monday 00:01 UTC. */
-export function weekStartHour(hour: Date): Date {
-  const previous = new Date(hour.getTime() - HOUR_MS);
-  const daysSinceMonday = (previous.getUTCDay() + 6) % 7;
+/** The stored week key stays at Monday 01:00 for compatibility with existing standings. */
+export function weekStart(hour: Date): Date {
+  const daysSinceMonday = (hour.getUTCDay() + 6) % 7;
   return new Date(Date.UTC(
-    previous.getUTCFullYear(),
-    previous.getUTCMonth(),
-    previous.getUTCDate() - daysSinceMonday,
+    hour.getUTCFullYear(),
+    hour.getUTCMonth(),
+    hour.getUTCDate() - daysSinceMonday,
     1,
   ));
 }
 
-export function weekFinalHour(weekStart: Date): Date {
-  return new Date(weekStart.getTime() + 7 * 24 * HOUR_MS - HOUR_MS);
-}
-
-export function isFinalHourOfWeek(hour: Date): boolean {
-  return hour.getUTCDay() === 1 && hour.getUTCHours() === 0;
+export function weekFinal(weekStart: Date): Date {
+  return new Date(weekStart.getTime() + 7 * 24 * HOUR_MS - HOUR_MS + MINUTE_MS);
 }
 
 export function formatUtc(date: Date): string {
