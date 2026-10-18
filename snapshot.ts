@@ -2,10 +2,10 @@
 export const snapshotLog = {
   "kingdom": 2426,
   "latest": {
-    "update": "2026-10-18T16:01:00.000Z",
-    "fetchedAt": "2026-10-18T16:01:18.175Z",
+    "update": "2026-10-18T17:01:00.000Z",
+    "fetchedAt": "2026-10-18T17:01:16.968Z",
     "apiCapturedAt": "2026-10-18T00:41:38.928Z",
-    "apiAgeMinutes": 920,
+    "apiAgeMinutes": 980,
     "alliances": [
       {
         "rank": 1,
@@ -710,6 +710,12 @@ export const snapshotLog = {
     ]
   },
   "history": [
+    {
+      "update": "2026-10-18T17:01:00.000Z",
+      "fetchedAt": "2026-10-18T17:01:16.968Z",
+      "apiCapturedAt": "2026-10-18T00:41:38.928Z",
+      "apiAgeMinutes": 980
+    },
     {
       "update": "2026-10-18T16:01:00.000Z",
       "fetchedAt": "2026-10-18T16:01:18.175Z",
