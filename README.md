@@ -42,6 +42,8 @@ Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` bran
 
 Existing version-1 point-based standings finish their current week with the old scoring and `pts` display, including the Monday 00:01 weekly summary. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. During migration, the last saved hourly slot plus one minute is used as the previous posting time until the first daily update saves an exact run timestamp. Deleting the state branch also clears duplicate protection.
 
+The first update switching from a completed version-1 week to version 2 bypasses the old posting cooldown once, so a late Sunday point update does not block Monday's 01:01 average-power update. After that successful update is saved, all version-2 updates obey the normal daily slot and 23-hour guard, including future weekly resets.
+
 ### Snapshot log
 Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` branch: [view it on GitHub](https://github.com/slowzd/kingshot-bot/blob/leaderboard-state/snapshot.ts). Weekly summaries leave it unchanged. It shows which Mightpulse snapshot was used:
 - `latest`: update time, when the API was fetched, when Mightpulse captured the data (`apiCapturedAt`), its age in minutes, and every alliance returned (rank, tag, name, power).

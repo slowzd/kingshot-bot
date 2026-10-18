@@ -162,6 +162,28 @@ test("invalid average-power state is rejected and overflowing totals fail explic
   }, snapshot([1]), new Date("2026-10-14T01:01:00Z")), /safe integer precision/);
 });
 
+test("the first average-power week bypasses legacy cooldown once, then restores the guard", async (t) => {
+  const stateFile = tempStateFile(t);
+  const sunday = new Date("2026-10-18T18:00:00Z");
+  saveStandings(stateFile, addUpdate(createPointWeek(sunday), snapshot([1]), sunday));
+  const sent: string[] = [];
+  const base = {
+    kingdom: 2426, stateFile,
+    fetchSnapshot: async () => snapshot([1]),
+    send: async (content: string) => { sent.push(content); },
+  };
+  const run = (time: string) => runDailyUpdate({ ...base, now: new Date(time) });
+  assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
+  assert.ok(sent[0].includes("pts"));
+  assert.equal((await run("2026-10-19T01:01:00Z")).status, "posted");
+  assert.ok(sent[1].includes("avg power"));
+  assert.equal(loadStandings(stateFile)?.version, 2);
+  assert.equal((await run("2026-10-19T02:01:00Z")).status, "skipped");
+  assert.equal((await run("2026-10-20T00:01:00Z")).status, "skipped");
+  assert.equal((await run("2026-10-20T01:01:00Z")).status, "posted");
+  assert.equal(sent.length, 3);
+});
+
 test("message shows top 10 power and cumulative ranking within Discord limits", () => {
   const ids = Array.from({ length: 100 }, (_, index) => index + 1);
   const current = snapshot(ids);

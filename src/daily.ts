@@ -61,7 +61,8 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
     return skip("The completed week is closed; the new daily ranking starts Monday 01:01 UTC.");
   }
 
-  if (!run.force && week?.lastHour) {
+  const switchingToAveragePower = week?.version === 1 && week.weekStart !== weekStart(hour).toISOString();
+  if (!run.force && !switchingToAveragePower && week?.lastHour) {
     // Legacy state has only the scheduled hourly time, not an exact posting timestamp.
     const lastPostedAt = week.lastPostedAt ?? `${week.lastHour}:01:00.000Z`;
     if (run.now.getTime() - Date.parse(lastPostedAt) < 23 * 60 * 60 * 1000) {
