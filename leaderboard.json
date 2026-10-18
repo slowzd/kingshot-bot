@@ -2,640 +2,640 @@
   "version": 1,
   "kingdom": 2426,
   "weekStart": "2026-10-12T01:00:00.000Z",
-  "updates": 103,
-  "absentPoints": 10403,
-  "lastHour": "2026-10-17T23",
+  "updates": 104,
+  "absentPoints": 10504,
+  "lastHour": "2026-10-18T00",
   "finalPosted": false,
   "alliances": [
     {
       "id": 243500078,
       "tag": "WIN",
       "name": "Winners",
-      "points": 103
+      "points": 104
     },
     {
       "id": 243500085,
       "tag": "WTR",
       "name": "Winterfell",
-      "points": 206
+      "points": 208
     },
     {
       "id": 243500008,
       "tag": "RxR",
       "name": "RisexRanger",
-      "points": 309
+      "points": 312
     },
     {
       "id": 243500004,
       "tag": "CLM",
       "name": "CalmDown",
-      "points": 412
+      "points": 416
     },
     {
       "id": 243500045,
       "tag": "SAO",
       "name": "StrongerAsOne",
-      "points": 515
+      "points": 520
     },
     {
       "id": 243500086,
       "tag": "WRS",
       "name": "WarriorsS",
-      "points": 618
+      "points": 624
     },
     {
       "id": 243500113,
       "tag": "ZYN",
       "name": "ZYRON",
-      "points": 721
+      "points": 728
     },
     {
       "id": 243500325,
       "tag": "xRx",
       "name": "FAFO",
-      "points": 937
+      "points": 947
     },
     {
       "id": 243500119,
       "tag": "Win",
       "name": "Win",
-      "points": 836
+      "points": 844
     },
     {
       "id": 243500353,
       "tag": "BET",
       "name": "Besties",
-      "points": 1008
+      "points": 1017
     },
     {
       "id": 243500002,
       "tag": "STC",
       "name": "Sthtoconsider",
-      "points": 1133
+      "points": 1144
     },
     {
       "id": 243500017,
       "tag": "Sao",
       "name": "SAOAcademie",
-      "points": 1327
+      "points": 1340
     },
     {
       "id": 243500016,
       "tag": "Clm",
       "name": "CLMacademy",
-      "points": 1248
+      "points": 1260
     },
     {
       "id": 243500746,
       "tag": "LFG",
       "name": "BestAlliance",
-      "points": 1442
+      "points": 1456
     },
     {
       "id": 243500023,
       "tag": "RBL",
       "name": "REBELS",
-      "points": 1545
+      "points": 1560
     },
     {
       "id": 243500248,
       "tag": "bet",
       "name": "BestAcademy",
-      "points": 1648
+      "points": 1664
     },
     {
       "id": 243500043,
       "tag": "VKN",
       "name": "VikingValhalla",
-      "points": 2407
+      "points": 2432
     },
     {
       "id": 243500518,
       "tag": "SPA",
       "name": "ESPAÑA",
-      "points": 1763
+      "points": 1780
     },
     {
       "id": 243500915,
       "tag": "DxC",
       "name": "FIGHTER",
-      "points": 1888
+      "points": 1907
     },
     {
       "id": 243500231,
       "tag": "RGN",
       "name": "RägNärøK",
-      "points": 1991
+      "points": 2011
     },
     {
       "id": 243500234,
       "tag": "RMP",
       "name": "Russianmachine",
-      "points": 2117
+      "points": 2138
     },
     {
       "id": 243500643,
       "tag": "VHh",
       "name": "AlwaysACTIVE",
-      "points": 2086
+      "points": 2104
     },
     {
       "id": 243500723,
       "tag": "KIL",
       "name": "KINGOFLEAGUE",
-      "points": 2436
+      "points": 2460
     },
     {
       "id": 243500402,
       "tag": "aHD",
       "name": "MaKaMa",
-      "points": 2383
+      "points": 2405
     },
     {
       "id": 243500437,
       "tag": "MVL",
       "name": "MarvelUNT",
-      "points": 2642
+      "points": 2668
     },
     {
       "id": 243500525,
       "tag": "rxr",
       "name": "RxR×Academy",
-      "points": 2432
+      "points": 2455
     },
     {
       "id": 243500061,
       "tag": "daX",
       "name": "NoooBzzz",
-      "points": 2781
+      "points": 2808
     },
     {
       "id": 243500583,
       "tag": "WMG",
       "name": "RexOfStock",
-      "points": 2884
+      "points": 2912
     },
     {
       "id": 243500454,
       "tag": "jYx",
       "name": "CePrimoo",
-      "points": 3054
+      "points": 3084
     },
     {
       "id": 243500067,
       "tag": "Pol",
       "name": "Polska",
-      "points": 3023
+      "points": 3052
     },
     {
       "id": 243500445,
       "tag": "BCV",
       "name": "Sparta",
-      "points": 3351
+      "points": 3385
     },
     {
       "id": 243500264,
       "tag": "qZa",
       "name": "GRIMMSTERS",
-      "points": 3205
+      "points": 3236
     },
     {
       "id": 243500290,
       "tag": "mpt",
       "name": "皇majestic",
-      "points": 3467
+      "points": 3499
     },
     {
       "id": 243500225,
       "tag": "abX",
       "name": "poderosa",
-      "points": 3456
+      "points": 3491
     },
     {
       "id": 243500316,
       "tag": "HQm",
       "name": "×夜無寂×",
-      "points": 3717
+      "points": 3754
     },
     {
       "id": 243500349,
       "tag": "DXA",
       "name": "Dutchwar",
-      "points": 3552
+      "points": 3585
     },
     {
       "id": 243500581,
       "tag": "XjQ",
       "name": "ImperialWars",
-      "points": 3902
+      "points": 3940
     },
     {
       "id": 243500774,
       "tag": "hfv",
       "name": "MagnificAliados",
-      "points": 3778
+      "points": 3814
     },
     {
       "id": 243500478,
       "tag": "nZs",
       "name": "Wolf",
-      "points": 4084
+      "points": 4124
     },
     {
       "id": 243500095,
       "tag": "YMF",
       "name": "AKHİLAl",
-      "points": 4256
+      "points": 4298
     },
     {
       "id": 243500447,
       "tag": "wzs",
       "name": "Korea",
-      "points": 4065
+      "points": 4104
     },
     {
       "id": 243500103,
       "tag": "PRO",
       "name": "EliteDefenders",
-      "points": 4281
+      "points": 4322
     },
     {
       "id": 243500005,
       "tag": "ZEN",
       "name": "ZENEX",
-      "points": 4496
+      "points": 4540
     },
     {
       "id": 243500721,
       "tag": "tJz",
       "name": "RTP",
-      "points": 4465
+      "points": 4508
     },
     {
       "id": 243500001,
       "tag": "HUN",
       "name": "LOSTHUNTERS",
-      "points": 4680
+      "points": 4725
     },
     {
       "id": 243500427,
       "tag": "KLP",
       "name": "kelapamuda",
-      "points": 4963
+      "points": 5013
     },
     {
       "id": 243500660,
       "tag": "YWB",
       "name": "AlianceContrAtak",
-      "points": 4729
+      "points": 4775
     },
     {
       "id": 243500601,
       "tag": "CaK",
       "name": "caca",
-      "points": 5279
+      "points": 5337
     },
     {
       "id": 243500205,
       "tag": "zwT",
       "name": "казахстан",
-      "points": 5002
+      "points": 5050
     },
     {
       "id": 243500372,
       "tag": "NWH",
       "name": "Goveners",
-      "points": 4923
+      "points": 4970
     },
     {
       "id": 243500204,
       "tag": "DRK",
       "name": "DragonKiller",
-      "points": 5186
+      "points": 5235
     },
     {
       "id": 243500265,
       "tag": "HzM",
       "name": "Nicegame",
-      "points": 5358
+      "points": 5409
     },
     {
       "id": 243500328,
       "tag": "KTc",
       "name": "Ithong",
-      "points": 5483
+      "points": 5536
     },
     {
       "id": 243500420,
       "tag": "BOO",
       "name": "Bleh",
-      "points": 5608
+      "points": 5662
     },
     {
       "id": 243500094,
       "tag": "HjT",
       "name": "Talquistan",
-      "points": 5601
+      "points": 5653
     },
     {
       "id": 243500269,
       "tag": "IND",
       "name": "INDOcrott",
-      "points": 5814
+      "points": 5870
     },
     {
       "id": 243500268,
       "tag": "ind",
       "name": "Topper",
-      "points": 5917
+      "points": 5974
     },
     {
       "id": 243500640,
       "tag": "RWp",
       "name": "TheDarkOrder",
-      "points": 5977
+      "points": 6032
     },
     {
       "id": 243500096,
       "tag": "jva",
       "name": "Greenland",
-      "points": 6100
+      "points": 6159
     },
     {
       "id": 243500622,
       "tag": "dwJ",
       "name": "الاندلس",
-      "points": 6293
+      "points": 6354
     },
     {
       "id": 243500284,
       "tag": "EWS",
       "name": "HARSH",
-      "points": 6375
+      "points": 6437
     },
     {
       "id": 243500021,
       "tag": "LDF",
       "name": "LAÇOSDEFOGO",
-      "points": 6522
+      "points": 6586
     },
     {
       "id": 243500057,
       "tag": "aup",
       "name": "ZFR",
-      "points": 6625
+      "points": 6690
     },
     {
       "id": 243500156,
       "tag": "Red",
       "name": "한국연맹",
-      "points": 6258
+      "points": 6321
     },
     {
       "id": 243500433,
       "tag": "tQa",
       "name": "Jbeladine",
-      "points": 6272
+      "points": 6332
     },
     {
       "id": 243500080,
       "tag": "fFd",
       "name": "USAA",
-      "points": 6820
+      "points": 6887
     },
     {
       "id": 243500683,
       "tag": "Csv",
       "name": "Україна",
-      "points": 6879
+      "points": 6945
     },
     {
       "id": 243500287,
       "tag": "hmz",
       "name": "Kkk",
-      "points": 7095
+      "points": 7164
     },
     {
       "id": 243500033,
       "tag": "RED",
       "name": "LosIlluminatis",
-      "points": 7016
+      "points": 7084
     },
     {
       "id": 243500155,
       "tag": "npw",
       "name": "Retribution",
-      "points": 7254
+      "points": 7325
     },
     {
       "id": 243500471,
       "tag": "aRJ",
       "name": "Feather",
-      "points": 7402
+      "points": 7474
     },
     {
       "id": 243500110,
       "tag": "PbC",
       "name": "Partizan",
-      "points": 7349
+      "points": 7419
     },
     {
       "id": 243500515,
       "tag": "MJX",
       "name": "Wolfborne",
-      "points": 7630
+      "points": 7705
     },
     {
       "id": 243500301,
       "tag": "YGy",
       "name": "LOST",
-      "points": 7713
+      "points": 7787
     },
     {
       "id": 243500309,
       "tag": "BRc",
       "name": "TheFalcons",
-      "points": 7589
+      "points": 7662
     },
     {
       "id": 243500305,
       "tag": "Csk",
       "name": "SuperKings",
-      "points": 7850
+      "points": 7926
     },
     {
       "id": 243500232,
       "tag": "vSr",
       "name": "ShadowMonarch",
-      "points": 9539
+      "points": 9640
     },
     {
       "id": 243500613,
       "tag": "Hcy",
       "name": "RB1689LBC",
-      "points": 8011
+      "points": 8089
     },
     {
       "id": 243500258,
       "tag": "VKG",
       "name": "THEVIKINGS",
-      "points": 8272
+      "points": 8354
     },
     {
       "id": 243500363,
       "tag": "SOL",
       "name": "SOLIS",
-      "points": 8082
+      "points": 8159
     },
     {
       "id": 243500019,
       "tag": "MfS",
       "name": "Heros",
-      "points": 8412
+      "points": 8492
     },
     {
       "id": 243500071,
       "tag": "SpR",
       "name": "SPQR",
-      "points": 8287
+      "points": 8366
     },
     {
       "id": 243500154,
       "tag": "IMP",
       "name": "GREEK",
-      "points": 8415
+      "points": 8496
     },
     {
       "id": 243500286,
       "tag": "MZt",
       "name": "GermanPower",
-      "points": 8299
+      "points": 8382
     },
     {
       "id": 243500375,
       "tag": "TRK",
       "name": "Türklergeliyor",
-      "points": 9062
+      "points": 9163
     },
     {
       "id": 243500201,
       "tag": "WQT",
       "name": "Raizen",
-      "points": 8927
+      "points": 9013
     },
     {
       "id": 243500222,
       "tag": "GSb",
       "name": "freeworld",
-      "points": 8848
+      "points": 8933
     },
     {
       "id": 243500739,
       "tag": "JWs",
       "name": "WTF",
-      "points": 8841
+      "points": 8925
     },
     {
       "id": 243500098,
       "tag": "Msf",
       "name": "Mischievous",
-      "points": 9258
+      "points": 9348
     },
     {
       "id": 243500199,
       "tag": "UfY",
       "name": "Bloop",
-      "points": 9157
+      "points": 9246
     },
     {
       "id": 243500055,
       "tag": "eBQ",
       "name": "conquistadores",
-      "points": 9172
+      "points": 9259
     },
     {
       "id": 243500602,
       "tag": "yEZ",
       "name": "BARBARBARIANS",
-      "points": 9431
+      "points": 9523
     },
     {
       "id": 243500373,
       "tag": "ALC",
       "name": "Alcesia",
-      "points": 9624
+      "points": 9718
     },
     {
       "id": 243500104,
       "tag": "Ekz",
       "name": "Olive",
-      "points": 9727
+      "points": 9822
     },
     {
       "id": 243500040,
       "tag": "SAW",
       "name": "FATİHSULTAN",
-      "points": 9876
+      "points": 9972
     },
     {
       "id": 243500224,
       "tag": "fAN",
       "name": "Kingslayer",
-      "points": 9640
+      "points": 9731
     },
     {
       "id": 243500455,
       "tag": "VMx",
       "name": "UkrainianTheme",
-      "points": 9991
+      "points": 10088
     },
     {
       "id": 243500412,
       "tag": "Fzz",
       "name": "NovaAliança",
-      "points": 10094
+      "points": 10192
     },
     {
       "id": 243500593,
       "tag": "red",
       "name": "Crimson",
-      "points": 10379
+      "points": 10480
     },
     {
       "id": 243500292,
       "tag": "kjP",
       "name": "ZENGİNLER",
-      "points": 10391
+      "points": 10492
     },
     {
       "id": 243500187,
       "tag": "tuT",
       "name": "dinamitos",
-      "points": 10221
+      "points": 10320
     },
     {
       "id": 243500502,
       "tag": "Cat",
       "name": "catacademy",
-      "points": 10334
+      "points": 10435
     },
     {
       "id": 243500494,
       "tag": "TAA",
       "name": "TiredAssAdults",
-      "points": 9845
+      "points": 9938
     },
     {
       "id": 243500986,
       "tag": "mRk",
       "name": "Rip",
-      "points": 10117
+      "points": 10205
     },
     {
       "id": 243500039,
       "tag": "Lol",
       "name": "Smiley",
-      "points": 10381
+      "points": 10481
     }
   ]
 }
