@@ -57,8 +57,8 @@ export function dailyMessage(
   return [
     ...powerSection(snapshot),
     "",
-    "## Daily Cumulative Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · ${week.version === 1 ? "less pts = better rank" : "Average observed daily power; highest wins"}`,
+    "## Current Average Power Ranking",
+    `-# ${weekRange(week)} · ${updatesText(week)}${week.version === 1 ? " · less pts = better rank" : ""}`,
     ...cumulativeLines(week),
     "",
     footer(snapshot, hour),
