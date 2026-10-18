@@ -16,7 +16,7 @@ function allianceLabel(alliance: { tag: string; name: string }): string {
 
 function powerSection(snapshot: PowerSnapshot): string[] {
   return [
-    `## Alliance Power - Top ${LIST_SIZE}`,
+    `## Today's Alliance Power - Top ${LIST_SIZE}`,
     ...snapshot.alliances
       .slice(0, LIST_SIZE)
       .map(
@@ -31,7 +31,7 @@ function cumulativeLines(week: WeekStandings): string[] {
     .slice(0, LIST_SIZE)
     .map(
       (standing, index) =>
-        `**#${index + 1}** ${allianceLabel(standing)} — ${standing.points.toLocaleString("en-US")} pts`,
+        `**#${index + 1}** ${allianceLabel(standing)} — ${standing.value.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${week.version === 1 ? "pts" : "avg power"}`,
     );
 }
 
@@ -58,7 +58,7 @@ export function dailyMessage(
     ...powerSection(snapshot),
     "",
     "## Daily Cumulative Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · less pts = better rank`,
+    `-# ${weekRange(week)} · ${updatesText(week)} · ${week.version === 1 ? "less pts = better rank" : "Average observed daily power; highest wins"}`,
     ...cumulativeLines(week),
     "",
     footer(snapshot, hour),
@@ -69,6 +69,7 @@ export function weeklyFinalMessage(week: WeekStandings): string {
   return [
     "## 🏆 Weekly Cumulative Ranking",
     `-# ${weekRange(week)} · ${updatesText(week)} · New ranking starts Monday 01:01 UTC`,
+    ...(week.version === 2 ? ["-# Average observed daily power"] : []),
     ...cumulativeLines(week),
   ].join("\n");
 }

@@ -50,7 +50,7 @@ const result = await runDailyUpdate({
 });
 if (result.status !== "posted") {
   const summary = result.status === "weekly-posted"
-    ? `Kingdom ${kingdom} weekly cumulative ranking ${dryRun ? "previewed" : force ? "test posted (not saved)" : "posted"} without adding points or changing the daily posting timestamp.`
+    ? `Kingdom ${kingdom} weekly cumulative ranking ${dryRun ? "previewed" : force ? "test posted (not saved)" : "posted"} without adding samples or changing the daily posting timestamp.`
     : `Kingdom ${kingdom} update skipped: ${result.reason}`;
   console.log(summary);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);

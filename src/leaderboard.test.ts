@@ -4,11 +4,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test, type TestContext } from "node:test";
-import { dailyMessage, splitMessage } from "./format.ts";
+import { dailyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
 import { runDailyUpdate } from "./daily.ts";
 import { parsePowerSnapshot, type PowerSnapshot } from "./mightpulse.ts";
 import { loadSnapshotLog } from "./snapshot-log.ts";
-import { addUpdate, createWeek, cumulativeRanking, loadStandings, saveStandings } from "./standings.ts";
+import { addUpdate, createWeek, cumulativeRanking, loadStandings, saveStandings, type PointWeek } from "./standings.ts";
 import { dueUpdate, hourKey, weekFinal, weekStart } from "./time.ts";
 
 function row(id: number, rank: number, power = 1_000_000_000 - rank) {
@@ -33,6 +33,10 @@ function tempStateFile(t: TestContext): string {
   return path.join(directory, "leaderboard.json");
 }
 
+function createPointWeek(hour: Date): PointWeek {
+  return { ...createWeek(2426, hour), version: 1, absentPoints: 0, alliances: [] };
+}
+
 test("daily slots stay at 01:01 UTC and weekly summaries are due Monday 00:01", () => {
   assert.equal(hourKey(dueUpdate(new Date("2026-10-13T00:59:59Z"))), "2026-10-12T01");
   assert.equal(hourKey(dueUpdate(new Date("2026-10-13T01:00:59Z"))), "2026-10-12T01");
@@ -55,16 +59,107 @@ test("reads the Alliance Power API response and rejects invalid data", () => {
   assert.throws(() => parsePowerSnapshot(apiResponse([row(1, 1, -5)]), 2426));
 });
 
-test("each update adds the rank held; dropouts and late entrants are scored fairly", () => {
+test("legacy point weeks continue their existing scoring until reset", () => {
   const first = new Date("2026-10-13T01:00:00Z");
-  let week = addUpdate(createWeek(2426, first), snapshot([1, 2, 3]), first);
+  let week = addUpdate(createPointWeek(first), snapshot([1, 2, 3]), first);
   assert.throws(() => addUpdate(week, snapshot([1, 2, 3]), new Date("2026-10-12T01:00:00Z")), /older than the last counted hour/);
   week = addUpdate(week, snapshot([2, 1, 4]), new Date("2026-10-14T01:00:00Z"));
-  const points = Object.fromEntries(week.alliances.map((standing) => [standing.id, standing.points]));
+  assert.equal(week.version, 1);
+  const points = Object.fromEntries(cumulativeRanking(week).map((standing) => [standing.id, standing.value]));
   assert.deepEqual(points, { 1: 3, 2: 3, 3: 7, 4: 7 });
   assert.equal(week.updates, 2);
   assert.deepEqual(cumulativeRanking(week).map((standing) => standing.id), [1, 2, 3, 4]);
 
+});
+
+test("average power includes observed days only and retains alliances after they leave the API", (t) => {
+  const first = new Date("2026-10-13T01:01:00Z");
+  const powerSnapshot = (rows: ReturnType<typeof row>[]) => parsePowerSnapshot(apiResponse(rows), 2426);
+  let week = addUpdate(createWeek(2426, first), powerSnapshot([
+    row(1, 1, 100), row(2, 2, 80), row(3, 11, 60), row(4, 12, 200),
+  ]), first);
+  week = addUpdate(week, powerSnapshot([
+    row(1, 1, 200), row(3, 2, 100), row(5, 3, 180), row(4, 11, 300),
+  ]), new Date("2026-10-14T01:01:00Z"));
+  week = addUpdate(week, powerSnapshot([
+    row(1, 1, 300), row(2, 2, 160), row(3, 11, 80),
+  ]), new Date("2026-10-15T01:01:00Z"));
+  assert.equal(week.version, 2);
+  assert.deepEqual(cumulativeRanking(week).map(({ id, value }) => [id, value]), [
+    [1, 200], [5, 180], [2, 120], [3, 80],
+  ]);
+  // Alliance 5 qualifies from just one day; alliance 4 never reached the daily top 10.
+  if (week.version !== 2) assert.fail("Expected average-power week");
+  assert.equal(week.alliances.find(({ id }) => id === 5)?.observations, 1);
+  assert.equal(week.alliances.find(({ id }) => id === 2)?.observations, 2);
+  const stateFile = tempStateFile(t);
+  saveStandings(stateFile, week);
+  assert.deepEqual(loadStandings(stateFile), week);
+  const final = weeklyFinalMessage(week);
+  assert.ok(final.includes("[A5] Alliance 5 — 180 avg power"));
+  assert.ok(!final.includes("[A4]"));
+  assert.ok(!final.includes("Alliance Power"));
+  assert.ok(!final.includes("pts"));
+});
+
+test("cumulative averages sort before rounding, break ties by ID, and display at most ten", () => {
+  const hour = new Date("2026-10-13T01:01:00Z");
+  let week = createWeek(2426, hour);
+  assert.equal(week.version, 2);
+  if (week.version !== 2) assert.fail("Expected average-power week");
+  week = {
+    ...week,
+    updates: 3,
+    alliances: Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1, tag: `A${index + 1}`, name: `Alliance ${index + 1}`,
+      totalPower: index < 2 ? 301 : 300,
+      observations: 3, reachedTop10: true,
+    })),
+  };
+  assert.deepEqual(cumulativeRanking(week).map(({ id }) => id), Array.from({ length: 12 }, (_, index) => index + 1));
+  const final = weeklyFinalMessage(week);
+  assert.equal(final.match(/ avg power$/gm)?.length, 10);
+  assert.ok(final.includes("100.33 avg power"));
+  assert.ok(!final.includes("[A11]"));
+});
+
+test("legacy state finishes with points and switches to power at Monday's daily reset", async (t) => {
+  const stateFile = tempStateFile(t);
+  const sunday = new Date("2026-10-18T01:01:00Z");
+  saveStandings(stateFile, {
+    ...addUpdate(createPointWeek(sunday), snapshot([1]), sunday),
+    lastPostedAt: sunday.toISOString(),
+  });
+  const sent: string[] = [];
+  const base = {
+    kingdom: 2426, stateFile,
+    fetchSnapshot: async () => snapshot([1]),
+    send: async (content: string) => { sent.push(content); },
+  };
+  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T00:01:00Z") })).status, "weekly-posted");
+  assert.ok(sent[0].includes("1 pts"));
+  assert.equal(loadStandings(stateFile)?.version, 1);
+  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "posted");
+  assert.ok(sent[1].includes("999,999,999 avg power"));
+  assert.ok(!sent[1].includes("pts"));
+  assert.equal(loadStandings(stateFile)?.version, 2);
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+});
+
+test("invalid average-power state is rejected and overflowing totals fail explicitly", (t) => {
+  const stateFile = tempStateFile(t);
+  const hour = new Date("2026-10-13T01:01:00Z");
+  const week = addUpdate(createWeek(2426, hour), snapshot([1]), hour);
+  if (week.version !== 2) assert.fail("Expected average-power week");
+  for (const invalid of [
+    { observations: 0 }, { observations: 2 }, { totalPower: -1 }, { reachedTop10: "yes" },
+  ]) {
+    fs.writeFileSync(stateFile, JSON.stringify({ ...week, alliances: [{ ...week.alliances[0], ...invalid }] }));
+    assert.throws(() => loadStandings(stateFile), /are invalid/);
+  }
+  assert.throws(() => addUpdate({
+    ...week, alliances: [{ ...week.alliances[0], totalPower: Number.MAX_SAFE_INTEGER }],
+  }, snapshot([1]), new Date("2026-10-14T01:01:00Z")), /safe integer precision/);
 });
 
 test("message shows top 10 power and cumulative ranking within Discord limits", () => {
@@ -73,8 +168,9 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   current.alliances[0].name = "*Bold* _name_";
   const hour = new Date("2026-10-13T01:01:00Z");
   const message = dailyMessage(current, addUpdate(createWeek(2426, hour), current, hour), hour);
-  assert.equal(message.match(/ — \d{3},/g)?.length, 10);
-  assert.equal(message.match(/ pts$/gm)?.length, 10);
+  assert.equal(message.match(/ — \d{3},/g)?.length, 20);
+  assert.equal(message.match(/ avg power$/gm)?.length, 10);
+  assert.ok(!message.includes("pts"));
   assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
   assert.ok(message.includes("Update Tue 13 Oct 01:01 UTC"));
   assert.ok(message.includes("## Daily Cumulative Ranking"));
@@ -105,7 +201,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   assert.equal(sent.length, 2);
   assert.ok(!sent[1].includes("Weekly"));
   assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · 2 daily updates"));
-  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 3 pts/);
+  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 999,999,998\.5 avg power/);
   assert.equal(loadStandings(stateFile)?.finalPosted, false);
   const before = loadStandings(stateFile)!;
   assert.equal((await run("2026-10-19T00:00:59Z")).status, "skipped");
@@ -123,7 +219,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   assert.equal(sent.length, 4);
   assert.ok(!sent[3].includes("Weekly"));
   assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · 1 daily update "));
-  assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 1 pts/);
+  assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 999,999,999 avg power/);
   assert.equal(loadStandings(stateFile)?.updates, 1);
 });
 
@@ -290,7 +386,7 @@ test("a long delay catches up once and returns to 01:01 instead of permanently s
 test("legacy hourly state is retained and observes the 23-hour guard during migration", async (t) => {
   const stateFile = tempStateFile(t);
   const legacyHour = new Date("2026-10-13T13:00:00Z");
-  saveStandings(stateFile, addUpdate(createWeek(2426, legacyHour), snapshot([1]), legacyHour));
+  saveStandings(stateFile, addUpdate(createPointWeek(legacyHour), snapshot([1]), legacyHour));
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
     fetchSnapshot: async () => snapshot([1]),

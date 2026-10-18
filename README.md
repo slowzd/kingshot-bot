@@ -7,17 +7,19 @@ When the daily update is due:
 1. **Alliance Power — Top 10** from `https://api.mightpulse.com/v1/kingdoms/<KINGDOM>/ranks?board=alliance_power&limit=100`.
 2. **Daily Cumulative Ranking** below it (top 10).
 
-Each successful daily update, every alliance gains points equal to the Alliance Power rank it holds (rank 1 = 1 point). Points stack all week and **lowest total wins**. Alliances outside the API's list receive last listed rank + 1 for that update; an alliance that appears mid-week is backfilled with those points for earlier updates, so it cannot get an unfairly low total. Skipped hourly checks add no points and do not fetch the API.
+Each successful daily update records the power of every alliance returned by the API (up to 100). **Average power = sum of observed daily power / number of daily observations**, with the highest average ranked first. Missing days do not count as zero; missed workflow runs add no samples.
+
+Only alliances that reached the daily **top 10 at least once that week** qualify for the cumulative ranking, which displays the 10 highest averages. Their earlier observations outside the top 10 still count toward their average. After qualifying, an alliance remains eligible even if it drops out of the top 10 or disappears from the API; days absent from the API leave its average unchanged. An alliance observed for only one day has that day's power as its average and can rank immediately. Eligibility does not guarantee a displayed place if ten other qualifying alliances have higher averages. Equal averages are ordered by alliance ID; displayed averages use up to two decimal places.
 
 ## Weekly cycle (UTC)
-- Each day at **01:01**, points are added and Alliance Power plus **Daily Cumulative Ranking** are posted.
-- **Sunday 01:01** – the last daily score of the week is counted as a normal daily update.
-- **Monday 00:01** – **Weekly Cumulative Ranking** summarizes the completed week's saved scores. It contains no Alliance Power section, fetches no API data, and adds no points.
-- **Monday 01:01** – the next daily week starts from zero.
+- Each day at **01:01**, a power sample is recorded and Alliance Power plus **Daily Cumulative Ranking** are posted.
+- **Sunday 01:01** – the last daily sample of the week is recorded as a normal daily update.
+- **Monday 00:01** – **Weekly Cumulative Ranking** summarizes the completed week's saved average power. It contains no Alliance Power section, fetches no API data, and adds no samples.
+- **Monday 01:01** – the next daily week starts with fresh power totals, observation counts, and top-10 eligibility.
 
-The weekly summary is separate from the daily 23-hour guard: it neither checks nor changes the last daily posting timestamp. It is saved as posted so repeated hourly checks do not send it again. Once the summary is published, that week's scores are closed.
+The weekly summary is separate from the daily 23-hour guard: it neither checks nor changes the last daily posting timestamp. It is saved as posted so repeated hourly checks do not send it again. Once the summary is published, that week's averages are closed.
 
-If Monday's 00:01 run is missed, the next run posts the saved weekly summary first. If a daily update is also eligible, it then posts separately and starts the new week. Only the daily update adds points. Failed weekly deliveries can be retried; a successfully saved summary is not repeated if the following daily API request fails.
+If Monday's 00:01 run is missed, the next run posts the saved weekly summary first. If a daily update is also eligible, it then posts separately and starts the new week. Only the daily update adds power samples. Failed weekly deliveries can be retried; a successfully saved summary is not repeated if the following daily API request fails.
 
 ## GitHub Actions setup
 The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hourly-leaderboard.yml).
@@ -38,7 +40,7 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
 
 Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` branch, which the workflow creates and updates itself. Delete that branch to reset the standings.
 
-Existing hourly standings remain valid: their totals are retained until the next Monday reset. During migration, the last saved hourly slot plus one minute is used as the previous posting time until the first daily update saves an exact run timestamp. Deleting the state branch also clears duplicate protection.
+Existing version-1 point-based standings finish their current week with the old scoring and `pts` display, including the Monday 00:01 weekly summary. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. During migration, the last saved hourly slot plus one minute is used as the previous posting time until the first daily update saves an exact run timestamp. Deleting the state branch also clears duplicate protection.
 
 ### Snapshot log
 Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` branch: [view it on GitHub](https://github.com/slowzd/kingshot-bot/blob/leaderboard-state/snapshot.ts). Weekly summaries leave it unchanged. It shows which Mightpulse snapshot was used:
@@ -52,7 +54,7 @@ GitHub's own scheduler delayed or dropped runs, so the workflow has no `schedule
 
 Keep the existing `1 * * * *` cron to check at **01:01 UTC** for daily posts and **Monday 00:01 UTC** for the weekly summary. GitHub startup can still add a delay.
 
-Missed daily updates are sent on the next eligible hourly check, even across midnight, unless their week has already closed. Multiple missed days produce only one current update, not a backlog of scores. The target remains 01:01 UTC, not "24 hours after the last post." For example, a delayed 02:01 post can be followed by the next day's 01:01 post (exactly 23 hours later), avoiding ongoing hourly drift. Longer delays may require later checks until the 23-hour minimum is met, then subsequent days move back toward 01:01.
+Missed daily updates are sent on the next eligible hourly check, even across midnight, unless their week has already closed. Multiple missed days produce only one current update, not a backlog of samples. The target remains 01:01 UTC, not "24 hours after the last post." For example, a delayed 02:01 post can be followed by the next day's 01:01 post (exactly 23 hours later), avoiding ongoing hourly drift. Longer delays may require later checks until the 23-hour minimum is met, then subsequent days move back toward 01:01.
 
 A failed API or Discord request does not count, so the next check can retry. Discord delivery and saving state are not one atomic operation: a partial multi-message delivery or a state-branch push failure can still cause a duplicate on retry.
 
@@ -66,7 +68,7 @@ Requires Node.js 24 or newer. Put the same variables in a local `.env` file.
 - `npm install` – installs the TypeScript tooling (only needed for `check`).
 - `npm run preview` – checks the daily schedule and, if due, fetches the live API and prints the message without posting or saving.
 - `npm start` – checks the daily schedule and, if due, posts to Discord and saves standings to `state/leaderboard.json` and the snapshot log to `state/snapshot.ts`.
-- `npm start -- --force` – sends a real Discord test post immediately to test channel `1561449272690344068`, ignoring `DISCORD_CHANNEL_ID` and bypassing both daily guards. Does not save points, the posting timestamp, or snapshot history, so the normal daily schedule is unaffected. Repeated calls send repeated test posts. The bot needs View Channel and Send Messages permissions in the test channel.
+- `npm start -- --force` – sends a real Discord test post immediately to test channel `1561449272690344068`, ignoring `DISCORD_CHANNEL_ID` and bypassing both daily guards. Does not save power samples, standings, the posting timestamp, or snapshot history, so the normal daily schedule is unaffected. Repeated calls send repeated test posts. The bot needs View Channel and Send Messages permissions in the test channel.
 - `npm run preview -- --force` – bypasses both guards to print a preview without sending to Discord or saving anything.
 - `npm test` – runs the tests.
 - `npm run check` – TypeScript type check.
