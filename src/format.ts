@@ -16,7 +16,7 @@ function allianceLabel(alliance: { tag: string; name: string }): string {
 
 function powerSection(snapshot: PowerSnapshot): string[] {
   return [
-    `## Alliance Power — Kingdom ${snapshot.kingdom} Top ${LIST_SIZE}`,
+    `## Alliance Power - Top ${LIST_SIZE}`,
     ...snapshot.alliances
       .slice(0, LIST_SIZE)
       .map(
