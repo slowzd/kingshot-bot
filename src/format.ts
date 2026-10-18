@@ -58,7 +58,7 @@ export function dailyMessage(
     ...powerSection(snapshot),
     "",
     "## Daily Cumulative Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)} · Points = rank held each daily update`,
+    `-# ${weekRange(week)} · ${updatesText(week)} · less pts = better rank`,
     ...cumulativeLines(week),
     "",
     footer(snapshot, hour),
