@@ -2,7 +2,7 @@ name: Daily Alliance Leaderboard
 
 on:
   # Triggered every hour at XX:01 UTC by an external scheduler (cron-job.org) through the GitHub API,
-  # Checks the 01:01 UTC daily slot with a 23-hour guard and Monday 00:01 weekly summary.
+  # Checks the 01:01 UTC daily slot and Monday 00:01 weekly summary, once per slot.
   workflow_dispatch:
 
 permissions:

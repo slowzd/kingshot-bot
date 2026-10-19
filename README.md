@@ -17,7 +17,7 @@ Only alliances that reached the daily **top 10 at least once that week** qualify
 - **Monday 00:01** – **Weekly Cumulative Ranking** summarizes the completed week's saved average power. It contains no Alliance Power section, fetches no API data, and adds no samples.
 - **Monday 01:01** – the next daily week starts with fresh power totals, observation counts, and top-10 eligibility.
 
-The weekly summary is separate from the daily 23-hour guard: it neither checks nor changes the last daily posting timestamp. It is saved as posted so repeated hourly checks do not send it again. Once the summary is published, that week's averages are closed.
+The weekly summary is separate from daily slot protection: it neither checks nor changes the last daily posting timestamp. It is saved as posted so repeated hourly checks do not send it again. Once the summary is published, that week's averages are closed.
 
 If Monday's 00:01 run is missed, the next run posts the saved weekly summary first. If a daily update is also eligible, it then posts separately and starts the new week. Only the daily update adds power samples. Failed weekly deliveries can be retried; a successfully saved summary is not repeated if the following daily API request fails.
 
@@ -36,13 +36,13 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
    - Request method: `POST`, body: `{"ref":"main"}`
    - Headers: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, `Content-Type: application/json`, `User-Agent: kingshot-leaderboard-cron`
    - Leave "Requires HTTP authentication" off. A successful test run returns `204 No Content`.
-4. Optional: **Actions → Daily Alliance Leaderboard → Run workflow** checks immediately. Manual runs obey the same daily slot and 23-hour guard; they do not force a post.
+4. Optional: **Actions → Daily Alliance Leaderboard → Run workflow** checks immediately. Manual runs obey the same daily slot protection; they do not force a post.
 
 Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` branch, which the workflow creates and updates itself. Delete that branch to reset the standings.
 
-Existing version-1 point-based standings finish their current week with the old scoring and `pts` display, including the Monday 00:01 weekly summary. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. During migration, the last saved hourly slot plus one minute is used as the previous posting time until the first daily update saves an exact run timestamp. Deleting the state branch also clears duplicate protection.
+Existing version-1 point-based standings finish their current week with the old scoring and `pts` display, including the Monday 00:01 weekly summary. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. The last saved slot prevents duplicate posts during migration. Deleting the state branch also clears duplicate protection.
 
-The first update switching from a completed version-1 week to version 2 bypasses the old posting cooldown once, so a late Sunday point update does not block Monday's 01:01 average-power update. After that successful update is saved, all version-2 updates obey the normal daily slot and 23-hour guard, including future weekly resets.
+There is no elapsed-time cooldown. A late Sunday update does not block Monday's 01:01 average-power update, and late daily updates never delay the next day's slot.
 
 ### Snapshot log
 Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` branch: [view it on GitHub](https://github.com/slowzd/kingshot-bot/blob/leaderboard-state/snapshot.ts). Weekly summaries leave it unchanged. It shows which Mightpulse snapshot was used:
@@ -52,11 +52,11 @@ Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` br
 The run summary in the **Actions** tab also says which API snapshot time each update used.
 
 ### Timing and reliability
-GitHub's own scheduler delayed or dropped runs, so the workflow has no `schedule:` and is started by cron-job.org instead. Keep the hourly trigger: each run checks the most recent **01:01 UTC** daily slot. The daily update posts only if that slot has not already been posted **and at least 23 hours have elapsed** since the last successful daily update. The timestamp and slot are saved on the state branch and survive separate workflow runs. Concurrent workflow runs are serialized. Monday's weekly summary has its own saved duplicate guard and runs independently.
+GitHub's own scheduler delayed or dropped runs, so the workflow has no `schedule:` and is started by cron-job.org instead. Keep the hourly trigger: each run checks the most recent **01:01 UTC** daily slot. The daily update posts only if that slot has not already been posted, regardless of how recently the previous day's update was sent. The timestamp and slot are saved on the state branch and survive separate workflow runs. Concurrent workflow runs are serialized. Monday's weekly summary has its own saved duplicate guard and runs independently.
 
 Keep the existing `1 * * * *` cron to check at **01:01 UTC** for daily posts and **Monday 00:01 UTC** for the weekly summary. GitHub startup can still add a delay.
 
-Missed daily updates are sent on the next eligible hourly check, even across midnight, unless their week has already closed. Multiple missed days produce only one current update, not a backlog of samples. The target remains 01:01 UTC, not "24 hours after the last post." For example, a delayed 02:01 post can be followed by the next day's 01:01 post (exactly 23 hours later), avoiding ongoing hourly drift. Longer delays may require later checks until the 23-hour minimum is met, then subsequent days move back toward 01:01.
+Missed daily updates are sent on the next eligible hourly check, even across midnight, unless their week has already closed. Multiple missed days produce only one current update, not a backlog of samples. The target remains 01:01 UTC, not "24 hours after the last post." For example, a delayed 00:30 catch-up post can be followed by the new day's 01:01 post, just 31 minutes later. Repeated checks for the same slot still do not post again.
 
 A failed API or Discord request does not count, so the next check can retry. Discord delivery and saving state are not one atomic operation: a partial multi-message delivery or a state-branch push failure can still cause a duplicate on retry.
 
@@ -70,8 +70,8 @@ Requires Node.js 24 or newer. Put the same variables in a local `.env` file.
 - `npm install` – installs the TypeScript tooling (only needed for `check`).
 - `npm run preview` – checks the daily schedule and, if due, fetches the live API and prints the message without posting or saving.
 - `npm start` – checks the daily schedule and, if due, posts to Discord and saves standings to `state/leaderboard.json` and the snapshot log to `state/snapshot.ts`.
-- `npm start -- --force` – sends a real Discord test post immediately to test channel `1561449272690344068`, ignoring `DISCORD_CHANNEL_ID` and bypassing both daily guards. Does not save power samples, standings, the posting timestamp, or snapshot history, so the normal daily schedule is unaffected. Repeated calls send repeated test posts. The bot needs View Channel and Send Messages permissions in the test channel.
-- `npm run preview -- --force` – bypasses both guards to print a preview without sending to Discord or saving anything.
+- `npm start -- --force` – sends a real Discord test post immediately to test channel `1561449272690344068`, ignoring `DISCORD_CHANNEL_ID` and bypassing daily slot duplicate protection. Does not save power samples, standings, the posting timestamp, or snapshot history, so the normal daily schedule is unaffected. Repeated calls send repeated test posts. The bot needs View Channel and Send Messages permissions in the test channel.
+- `npm run preview -- --force` – bypasses daily slot duplicate protection to print a preview without sending to Discord or saving anything.
 - `npm test` – runs the tests.
 - `npm run check` – TypeScript type check.
 

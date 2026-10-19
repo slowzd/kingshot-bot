@@ -162,7 +162,7 @@ test("invalid average-power state is rejected and overflowing totals fail explic
   }, snapshot([1]), new Date("2026-10-14T01:01:00Z")), /safe integer precision/);
 });
 
-test("the first average-power week bypasses legacy cooldown once, then restores the guard", async (t) => {
+test("a late legacy update does not block the first average-power slot or allow duplicates", async (t) => {
   const stateFile = tempStateFile(t);
   const sunday = new Date("2026-10-18T18:00:00Z");
   saveStandings(stateFile, addUpdate(createPointWeek(sunday), snapshot([1]), sunday));
@@ -195,7 +195,7 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   assert.ok(!message.includes("pts"));
   assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
   assert.ok(message.includes("Update Tue 13 Oct 01:01 UTC"));
-  assert.ok(message.includes("## Daily Cumulative Ranking"));
+  assert.ok(message.includes("## Current Average Power Ranking"));
   assert.ok(message.includes("1 daily update"));
   assert.deepEqual(splitMessage(message), [message]);
 });
@@ -216,13 +216,13 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   assert.equal((await run("2026-10-17T02:01:00Z")).status, "skipped");
   assert.equal((await run("2026-10-18T00:01:00Z")).status, "skipped");
   assert.equal(sent.length, 1);
-  assert.ok(sent[0].includes("## Daily Cumulative Ranking"));
+  assert.ok(sent[0].includes("## Current Average Power Ranking"));
   assert.equal(loadStandings(stateFile)?.updates, 1);
 
   await run("2026-10-18T01:01:30Z", [2, 1, 3]);
   assert.equal(sent.length, 2);
   assert.ok(!sent[1].includes("Weekly"));
-  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · 2 daily updates"));
+  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · Calculated from 2 daily updates"));
   assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 999,999,998\.5 avg power/);
   assert.equal(loadStandings(stateFile)?.finalPosted, false);
   const before = loadStandings(stateFile)!;
@@ -240,7 +240,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   await run("2026-10-19T01:01:30Z", [3, 2, 1]);
   assert.equal(sent.length, 4);
   assert.ok(!sent[3].includes("Weekly"));
-  assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · 1 daily update "));
+  assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · Calculated from 1 daily update"));
   assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 999,999,999 avg power/);
   assert.equal(loadStandings(stateFile)?.updates, 1);
 });
@@ -259,11 +259,11 @@ test("a missed Monday 00:01 run posts the cumulative-only summary before the nex
   assert.ok(sent[1].startsWith("## 🏆 Weekly Cumulative Ranking"));
   assert.ok(!sent[1].includes("Alliance Power"));
   assert.ok(sent[1].includes("1 daily update "));
-  assert.ok(sent[2].includes("## Alliance Power"));
+  assert.ok(sent[2].includes("## Today's Alliance Power"));
   assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
 });
 
-test("weekly summaries bypass the daily cooldown, leave snapshots intact and retry failed delivery", async (t) => {
+test("weekly summaries leave snapshots intact and retry failed delivery after a late daily post", async (t) => {
   const stateFile = tempStateFile(t);
   const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
   const sent: string[] = [];
@@ -286,8 +286,10 @@ test("weekly summaries bypass the daily cooldown, leave snapshots intact and ret
   assert.equal((await runDailyUpdate(weekly)).status, "weekly-posted");
   assert.deepEqual(loadStandings(stateFile), { ...before, finalPosted: true });
   assert.equal(fs.readFileSync(snapshotFile, "utf8"), snapshotBefore);
-  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "skipped");
-  assert.equal(sent.length, 2);
+  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "posted");
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T02:01:00Z") })).status, "skipped");
+  assert.equal(sent.length, 3);
 });
 
 test("a saved catch-up weekly summary is not repeated after the daily API fails", async (t) => {
@@ -361,7 +363,7 @@ test("each posted update records the API snapshot it used in a generated .ts fil
   assert.deepEqual(log?.history.map((use) => use.update), ["2026-10-14T01:01:00.000Z", "2026-10-13T01:01:00.000Z"]);
 });
 
-test("the persistent guard skips before 23 hours and allows exactly 23 hours without drifting", async (t) => {
+test("daily slot protection allows a new slot 31 minutes after catch-up but prevents duplicates", async (t) => {
   const stateFile = tempStateFile(t);
   let fetched = 0;
   let sent = 0;
@@ -370,7 +372,7 @@ test("the persistent guard skips before 23 hours and allows exactly 23 hours wit
     fetchSnapshot: async () => { fetched++; return snapshot([1, 2]); },
     send: async () => { sent++; },
   });
-  await run("2026-10-13T02:01:00Z");
+  await run("2026-10-14T00:30:00Z");
   const saved = fs.readFileSync(stateFile, "utf8");
   assert.equal((await run("2026-10-14T01:00:59Z")).status, "skipped");
   assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
@@ -386,7 +388,7 @@ test("the persistent guard skips before 23 hours and allows exactly 23 hours wit
   assert.equal(sent, 6);
 });
 
-test("a long delay catches up once and returns to 01:01 instead of permanently shifting", async (t) => {
+test("a long delay catches up once and the next day still posts at 01:01", async (t) => {
   const stateFile = tempStateFile(t);
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
@@ -394,9 +396,9 @@ test("a long delay catches up once and returns to 01:01 instead of permanently s
     send: async () => {},
   });
   await run("2026-10-13T04:01:00Z");
-  assert.equal((await run("2026-10-14T01:01:00Z")).status, "skipped");
+  assert.equal((await run("2026-10-14T01:01:00Z")).status, "posted");
   assert.equal((await run("2026-10-14T02:01:00Z")).status, "skipped");
-  assert.equal((await run("2026-10-14T03:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-14T03:01:00Z")).status, "skipped");
   assert.equal((await run("2026-10-15T02:01:00Z")).status, "posted");
   assert.equal((await run("2026-10-16T01:01:00Z")).status, "posted");
   assert.equal((await run("2026-10-17T01:01:00Z")).status, "posted");
@@ -405,7 +407,7 @@ test("a long delay catches up once and returns to 01:01 instead of permanently s
   assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-22T01");
 });
 
-test("legacy hourly state is retained and observes the 23-hour guard during migration", async (t) => {
+test("legacy hourly state is retained without blocking the next daily slot", async (t) => {
   const stateFile = tempStateFile(t);
   const legacyHour = new Date("2026-10-13T13:00:00Z");
   saveStandings(stateFile, addUpdate(createPointWeek(legacyHour), snapshot([1]), legacyHour));
@@ -414,10 +416,10 @@ test("legacy hourly state is retained and observes the 23-hour guard during migr
     fetchSnapshot: async () => snapshot([1]),
     send: async () => {},
   });
-  assert.equal((await run("2026-10-14T01:01:00Z")).status, "skipped");
-  assert.equal((await run("2026-10-14T12:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-14T01:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-14T12:01:00Z")).status, "skipped");
   assert.equal(loadStandings(stateFile)?.updates, 2);
-  assert.equal(loadStandings(stateFile)?.lastPostedAt, "2026-10-14T12:01:00.000Z");
+  assert.equal(loadStandings(stateFile)?.lastPostedAt, "2026-10-14T01:01:00.000Z");
 });
 
 test("previews do not persist state and invalid saved posting times fail explicitly", async (t) => {
@@ -435,7 +437,7 @@ test("previews do not persist state and invalid saved posting times fail explici
   await assert.rejects(runDailyUpdate(base), /Saved standings .* are invalid/);
 });
 
-test("forced test posts bypass both guards without changing standings or snapshot history", async (t) => {
+test("forced test posts bypass slot protection without changing standings or snapshot history", async (t) => {
   const stateFile = tempStateFile(t);
   const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
   let sent = 0;
