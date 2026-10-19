@@ -339,6 +339,47 @@ test("failed API or Discord requests do not count or block retries", async (t) =
   assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-13T01");
 });
 
+test("hourly checks retry until Discord succeeds, then wait for the next 01:01 UTC slot", async (t) => {
+  const stateFile = tempStateFile(t);
+  let fetched = 0;
+  let deliveries = 0;
+  let discordAvailable = true;
+  const run = (time: string) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile,
+    fetchSnapshot: async () => { fetched++; return snapshot([1]); },
+    send: async () => {
+      if (!discordAvailable) throw new Error("Discord unavailable");
+      deliveries++;
+    },
+  });
+  assert.equal((await run("2026-10-13T01:01:00Z")).status, "posted");
+  const previous = fs.readFileSync(stateFile, "utf8");
+  assert.equal((await run("2026-10-14T01:00:59Z")).status, "skipped");
+  discordAvailable = false;
+  for (const hour of ["01", "02"]) {
+    await assert.rejects(run(`2026-10-14T${hour}:01:00Z`), /Discord unavailable/);
+    assert.equal(fs.readFileSync(stateFile, "utf8"), previous);
+  }
+  discordAvailable = true;
+  assert.equal((await run("2026-10-14T03:01:00Z")).status, "posted");
+  assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-14T01");
+  const saved = fs.readFileSync(stateFile, "utf8");
+  for (let hour = 4; hour < 24; hour++) {
+    assert.equal((await run(`2026-10-14T${String(hour).padStart(2, "0")}:01:00Z`)).status, "skipped");
+  }
+  for (const time of ["2026-10-15T00:01:00Z", "2026-10-15T01:00:59Z"]) {
+    assert.equal((await run(time)).status, "skipped");
+  }
+  assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
+  assert.equal(fetched, 4);
+  assert.equal(deliveries, 2);
+  assert.equal((await run("2026-10-15T01:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-15T02:01:00Z")).status, "skipped");
+  assert.equal(fetched, 5);
+  assert.equal(deliveries, 3);
+  assert.equal(loadStandings(stateFile)?.updates, 3);
+});
+
 test("each posted update records the API snapshot it used in a generated .ts file", async (t) => {
   const stateFile = tempStateFile(t);
   const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");

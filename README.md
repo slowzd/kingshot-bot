@@ -56,6 +56,8 @@ GitHub's own scheduler delayed or dropped runs, so the workflow has no `schedule
 
 Keep the existing `1 * * * *` cron to check at **01:01 UTC** for daily posts and **Monday 00:01 UTC** for the weekly summary. GitHub startup can still add a delay.
 
+For each daily slot, the 01:01 UTC run attempts delivery. If the API or Discord request fails, each following hourly run retries until delivery succeeds. Only successful delivery marks that slot as posted. Once saved, all further checks skip that daily ranking until the next day's 01:01 UTC slot, including checks after midnight but before 01:01.
+
 Missed daily updates are sent on the next eligible hourly check, even across midnight, unless their week has already closed. Multiple missed days produce only one current update, not a backlog of samples. The target remains 01:01 UTC, not "24 hours after the last post." For example, a delayed 00:30 catch-up post can be followed by the new day's 01:01 post, just 31 minutes later. Repeated checks for the same slot still do not post again.
 
 A failed API or Discord request does not count, so the next check can retry. Discord delivery and saving state are not one atomic operation: a partial multi-message delivery or a state-branch push failure can still cause a duplicate on retry.
