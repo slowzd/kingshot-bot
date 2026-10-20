@@ -4,19 +4,19 @@ Posts a Kingshot **Alliance Power** leaderboard to Discord once daily, starting 
 
 ## What it posts
 When the daily update is due:
-1. Check the `captured_at` timestamp from `https://api.mightpulse.com/v1/kingdoms/<KINGDOM>/ranks?board=alliance_power&limit=100`. It must belong to the daily slot's **UTC date** and be newer than the last accepted capture. Invalid or future timestamps fail explicitly.
+1. Read Alliance Power from board `1` at the website's public endpoint `https://mightpulse.com/api/kingdoms/<KINGDOM>/ingame-ranks` (no API key required). Check that board's `captured_at` timestamp: it must belong to the daily slot's **UTC date** and be newer than the last accepted capture. Invalid or future timestamps fail explicitly.
 2. If Mightpulse has not captured that day's data yet, do not post, change standings, or save a snapshot. Leave the slot open for the next hourly workflow run.
 3. Once fresh data is available, take only alliances ranked **1–10**, save their snapshot after successful delivery, and post **Today's Alliance Power — Top 10** plus **Current Average Power Ranking** below it.
 
-Each successful daily update records only that day's **top 10**. **Average power = sum of accepted daily top-10 power / number of top-10 observations**, with the highest average ranked first. This is a true weekly average, not `(yesterday's average + today's power) / 2`: powers of 100, 200, and 600 produce averages of 100, 150, and 300. Monday's first accepted sample naturally has its daily power as its average.
+Each successful daily update records that day's **top 20**, while displaying only the **top 10** daily power and average power rankings. **Average power = sum of accepted daily top-20 power / number of top-20 observations**, with the highest average ranked first. This is a true weekly average, not `(yesterday's average + today's power) / 2`: powers of 100, 200, and 600 produce averages of 100, 150, and 300. Monday's first accepted sample naturally has its daily power as its average.
 
-Alliances observed in the daily **top 10 at least once that week** qualify for the weekly average ranking, which displays the 10 highest averages. When an alliance drops out of the daily top 10, its saved average remains unchanged until it returns. Missing days do not count as zero; stale data and missed workflow runs add no samples. Eligibility does not guarantee a displayed place if ten other qualifying alliances have higher averages. Equal averages are ordered by alliance ID; displayed averages use up to two decimal places.
+Alliances observed in the daily **top 20 at least once that week** qualify for the average ranking, which displays the 10 highest averages. Observations at ranks 11–20 count even before an alliance enters the displayed top 10. When an alliance drops below the daily top 20, its saved average remains unchanged until it returns. Missing days do not count as zero; stale data and missed workflow runs add no samples. Eligibility does not guarantee a displayed place if ten other qualifying alliances have higher averages. Equal averages are ordered by alliance ID; displayed averages use up to two decimal places.
 
 ## Weekly cycle (UTC)
 - Each day from **01:01**, hourly runs check for fresh daily data. The first run with eligible data posts Alliance Power plus **Current Average Power Ranking**, then saves the sample and marks the daily slot complete.
 - **Sunday from 01:01** – the last daily sample of the week is accepted once fresh data is available.
 - **Monday 00:01** – **Weekly Cumulative Ranking** summarizes the completed week's saved average power. It contains no Alliance Power section, fetches no API data, and adds no samples.
-- **Monday from 01:01** – checks resume for Monday's Mightpulse data. The first fresh daily update starts the new week with fresh power totals, observation counts, and top-10 eligibility. Sunday's stale capture cannot start the new week.
+- **Monday from 01:01** – checks resume for Monday's Mightpulse data. The first fresh daily update starts the new week with fresh power totals, observation counts, and top-20 eligibility. Sunday's stale capture cannot start the new week.
 
 The weekly summary is separate from daily slot protection: it neither checks nor changes the last daily posting timestamp. It is saved as posted so repeated hourly checks do not send it again. Once the summary is published, that week's averages are closed.
 
@@ -28,7 +28,6 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
 1. In the repository go to **Settings → Secrets and variables → Actions** and add:
    - `DISCORD_TOKEN` – bot token (the bot needs View Channel and Send Messages in the channel)
    - `DISCORD_CHANNEL_ID` – channel to post in
-   - `MIGHTPULSE_API_KEY` – Mightpulse API key
    - `KINGDOM` – optional, defaults to `2426`
 2. Create a GitHub token with access to this repository and **Actions: Read and write** (or a classic token with the `repo` and `workflow` scopes).
 3. On [cron-job.org](https://cron-job.org), create a job that runs every hour at minute 1:
@@ -41,16 +40,16 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
 
 Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` branch, which the workflow creates and updates itself. Delete that branch to reset the standings.
 
-Existing version-1 point-based standings finish their current week with the old scoring and `pts` display, including the Monday 00:01 weekly summary. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. The last saved slot prevents duplicate posts during migration. Deleting the state branch also clears duplicate protection.
+Existing version-1 point-based standings finish their current week with the old scoring, including the Monday 00:01 weekly summary. Ranking values display without `pts` or `avg power` suffixes. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. The last saved slot prevents duplicate posts during migration. Deleting the state branch also clears duplicate protection.
 
-Existing saved averages and previously counted samples are not rewritten. Older version-2 observations outside the top 10 remain in that week's totals until the next weekly reset; new samples use only the daily top 10. The freshness guard applies immediately. Older standings without a saved source timestamp use the snapshot log's latest capture when available; the UTC-date check also applies when no history exists.
+Existing saved averages and previously counted samples are not rewritten. New samples use the daily top 20; ranks 11–20 from earlier top-10-only snapshots cannot be recovered retroactively. Existing version-2 observations remain in that week's totals until the next weekly reset. Older standings without a saved source timestamp use the snapshot log's latest capture when available; the UTC-date check also applies when no history exists.
 
 There is no elapsed-time cooldown. A late Sunday update does not block Monday's fresh average-power update, and late daily updates never delay the next day's slot.
 
 ### Snapshot log
 Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` branch: [view it on GitHub](https://github.com/slowzd/kingshot-bot/blob/leaderboard-state/snapshot.ts). Weekly summaries leave it unchanged. It shows which Mightpulse snapshot was used:
-- `latest`: update slot, when the API was fetched, when Mightpulse captured the data (`apiCapturedAt`), its age in minutes, and the accepted daily top 10 (rank, ID, tag, name, power).
-- `history`: the same times **and each day's top-10 data** for up to 336 updates, newest first. Older entries may contain timestamps only.
+- `latest`: update slot, when the API was fetched, when Mightpulse captured the data (`apiCapturedAt`), its age in minutes, and the accepted daily top 20 (rank, ID, tag, name, power).
+- `history`: the same times **and each day's top-20 data** for up to 336 updates, newest first. Older entries may contain only top-10 data or timestamps.
 
 The run summary in the **Actions** tab says which API snapshot time each update used, or why the bot is waiting. Discord's daily footer shows only the update slot. Equal power values on different days are valid if Mightpulse's capture timestamp confirms a new daily snapshot.
 
@@ -99,7 +98,7 @@ The workflow:
 1. Waits in the same concurrency group as normal cron runs and loads `leaderboard-state`.
 2. Requires an existing, open average-power week with today's accepted daily slot and its matching saved snapshot. It cannot correct an older day, a closed week, or legacy point-based standings.
 3. Fetches the latest Mightpulse capture for today's UTC date. It bypasses the already-posted guard and permits reusing today's capture, but does not accept stale or future-dated data.
-4. Subtracts the old sample, applies the latest top 10, and recalculates the weekly average **without increasing the daily update count**. Alliances with no remaining observations are removed. Existing historical observations and legacy eligibility are preserved.
+4. Subtracts the old sample, applies the latest top 20, and recalculates the weekly average **without increasing the daily update count**. Alliances with no remaining observations are removed. Existing historical observations are preserved.
 5. Sends a **new correction message to the normal channel**. It does not edit or delete the previous Discord message.
 6. Saves the replacement standings and snapshot to the shared state branch. Snapshot history keeps one accepted entry for the corrected slot. Failed API or Discord requests leave the saved sample unchanged for retry.
 

@@ -33,7 +33,6 @@ function env(name: string): string {
 
 const kingdom = Number(process.env.KINGDOM || 2426);
 if (!Number.isSafeInteger(kingdom) || kingdom < 1) throw new Error("KINGDOM must be a positive integer.");
-const apiKey = env("MIGHTPULSE_API_KEY");
 const token = dryRun ? "" : env("DISCORD_TOKEN");
 const channelId = dryRun ? "" : force ? "1561449272690344068" : env("DISCORD_CHANNEL_ID");
 if (!dryRun) console.log(`Discord destination: ${channelId}${force ? " (test channel)" : ""}.`);
@@ -43,7 +42,7 @@ const result = await runDailyUpdate({
   kingdom,
   stateFile: path.resolve(process.env.STATE_FILE || "state/leaderboard.json"),
   snapshotFile: path.resolve(process.env.SNAPSHOT_FILE || "state/snapshot.ts"),
-  fetchSnapshot: () => fetchPowerSnapshot(kingdom, apiKey),
+  fetchSnapshot: () => fetchPowerSnapshot(kingdom),
   send: async (content) => {
     if (dryRun) {
       console.log(`${content}\n`);

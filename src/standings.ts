@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { Alliance, PowerSnapshot } from "./mightpulse.ts";
+import { TRACKED_ALLIANCE_LIMIT, type Alliance, type PowerSnapshot } from "./mightpulse.ts";
 import { hourKey, weekStart } from "./time.ts";
 
 interface AllianceIdentity {
@@ -68,7 +68,7 @@ export function addUpdate(week: WeekStandings, snapshot: PowerSnapshot, hour: Da
 
   if (week.version === 2) {
     const alliances = new Map(week.alliances.map((alliance) => [alliance.id, alliance]));
-    for (const alliance of snapshot.alliances.filter(({ rank }) => rank <= 10)) {
+    for (const alliance of snapshot.alliances.filter(({ rank }) => rank <= TRACKED_ALLIANCE_LIMIT)) {
       const previous = alliances.get(alliance.id);
       const totalPower = (previous?.totalPower ?? 0) + alliance.power;
       if (!Number.isSafeInteger(totalPower)) throw new Error(`Power total for alliance ${alliance.id} exceeds safe integer precision.`);
@@ -120,7 +120,6 @@ export function cumulativeRanking(week: WeekStandings): (AllianceIdentity & { va
       .map((alliance) => ({ ...alliance, value: alliance.points }));
   }
   return week.alliances
-    .filter((alliance) => alliance.reachedTop10)
     .map((alliance) => ({ ...alliance, value: alliance.totalPower / alliance.observations }))
     .sort((a, b) => b.value - a.value || a.id - b.id);
 }

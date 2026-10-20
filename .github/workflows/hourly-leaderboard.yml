@@ -61,7 +61,6 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
-          MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
           CORRECT_DAILY: ${{ inputs.correct }}
           CORRECTION_DATE: ${{ inputs.correction_date }}
         run: |

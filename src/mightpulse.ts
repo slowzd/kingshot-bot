@@ -1,3 +1,5 @@
+export const TRACKED_ALLIANCE_LIMIT = 20;
+
 export interface Alliance {
   id: number;
   rank: number;
@@ -21,12 +23,13 @@ function isPositiveInteger(value: unknown): value is number {
 }
 
 export function parsePowerSnapshot(data: unknown, kingdom: number): PowerSnapshot {
-  if (!isRecord(data) || data.ok !== true || data.kid !== kingdom || !isRecord(data.board)) {
+  if (!isRecord(data) || data.ok !== true || data.kid !== kingdom || !isRecord(data.boards)) {
     throw new Error(`Mightpulse returned an invalid response for kingdom ${kingdom}.`);
   }
-  const board = data.board;
+  const board = data.boards["1"];
   if (
-    board.key !== "alliance_power" ||
+    !isRecord(board) ||
+    board.type !== 1 ||
     typeof board.captured_at !== "number" ||
     !Number.isFinite(board.captured_at) ||
     board.captured_at <= 0 ||
@@ -65,11 +68,11 @@ export function parsePowerSnapshot(data: unknown, kingdom: number): PowerSnapsho
   return { kingdom, capturedAt: new Date(board.captured_at * 1000), alliances };
 }
 
-export async function fetchPowerSnapshot(kingdom: number, apiKey: string): Promise<PowerSnapshot> {
+export async function fetchPowerSnapshot(kingdom: number): Promise<PowerSnapshot> {
   const response = await fetch(
-    `https://api.mightpulse.com/v1/kingdoms/${kingdom}/ranks?board=alliance_power&limit=100`,
+    `https://mightpulse.com/api/kingdoms/${kingdom}/ingame-ranks`,
     {
-      headers: { Accept: "application/json", Authorization: `Bearer ${apiKey}` },
+      headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(30_000),
     },
   );

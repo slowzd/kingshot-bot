@@ -79,6 +79,28 @@ test("Monday's first sample can be replaced without retaining the incorrect alli
   assert.equal(loadSnapshotLog(fixture.snapshotFile)?.history.length, 1);
 });
 
+test("correction replaces top-20 observations while preserving earlier lower-rank history", async (t) => {
+  const fixture = setup(t);
+  const snapshot = (time: string, power: number, rank: number): PowerSnapshot => ({
+    kingdom: 2426, capturedAt: new Date(time),
+    alliances: [alliance(1, 100), alliance(20, power, rank), alliance(21, 10, 21)],
+  });
+  fixture.setSnapshot(snapshot("2026-10-19T00:41:00Z", 60, 20));
+  await fixture.run("2026-10-19T01:01:00Z");
+  fixture.setSnapshot(snapshot("2026-10-20T00:41:00Z", 80, 15));
+  await fixture.run("2026-10-20T01:01:00Z");
+  fixture.setSnapshot(snapshot("2026-10-20T07:41:00Z", 300, 2));
+  await fixture.run("2026-10-20T08:01:00Z", { correctionDate: "2026-10-20" });
+  const week = loadStandings(fixture.stateFile)!;
+  assert.equal(week.updates, 2);
+  assert.equal(cumulativeRanking(week).find(({ id }) => id === 20)?.value, 180);
+  assert.ok(!week.alliances.some(({ id }) => id === 21));
+  const log = loadSnapshotLog(fixture.snapshotFile)!;
+  assert.equal(log.history.length, 2);
+  assert.equal(log.latest.alliances.find(({ id }) => id === 20)?.power, 300);
+  assert.ok(log.history.every(({ alliances }) => alliances?.length === 2));
+});
+
 test("correction preview and failed deliveries leave both saved files unchanged", async (t) => {
   const fixture = setup(t);
   await fixture.run("2026-10-19T01:01:00Z");
@@ -215,12 +237,12 @@ test("correction CLI posts to the normal channel and persists a replacement samp
   await fixture.run("2026-10-19T01:01:00Z");
   const preload = `${fixedClock}
   globalThis.fetch = async (url) => {
-    if (url.startsWith("https://api.mightpulse.com/")) {
+    if (url === "https://mightpulse.com/api/kingdoms/2426/ingame-ranks") {
       return Response.json({
-        ok: true, kid: 2426, board: {
-          key: "alliance_power", captured_at: Date.parse("2026-10-19T07:41:00Z") / 1000,
+        ok: true, kid: 2426, boards: { "1": {
+          type: 1, captured_at: Date.parse("2026-10-19T07:41:00Z") / 1000,
           rows: [{ aid: 1, rank: 1, kid: 2426, name: "Alliance 1", abbr: "A1", score: 900 }]
-        }
+        } }
       });
     }
     if (url === "https://discord.com/api/v10/channels/1559288525201866814/messages") return Response.json({ id: "corrected-message" });
@@ -231,7 +253,7 @@ test("correction CLI posts to the normal channel and persists a replacement samp
   ], {
     cwd: fixture.directory, encoding: "utf8", timeout: 15_000,
     env: {
-      ...process.env, KINGDOM: "2426", MIGHTPULSE_API_KEY: "test-key", DISCORD_TOKEN: "test-token",
+      ...process.env, KINGDOM: "2426", MIGHTPULSE_API_KEY: "", DISCORD_TOKEN: "test-token",
       DISCORD_CHANNEL_ID: "1559288525201866814", STATE_FILE: fixture.stateFile,
       SNAPSHOT_FILE: fixture.snapshotFile, CORRECTION_DATE: "2026-10-19", GITHUB_STEP_SUMMARY: "",
     },

@@ -19,7 +19,7 @@ function apiResponse(rows = [row(1, 1), row(2, 2), row(3, 3)]) {
   return {
     ok: true,
     kid: 2426,
-    board: { key: "alliance_power", captured_at: Date.parse("2026-10-13T12:41:00Z") / 1000, rows },
+    boards: { "1": { type: 1, captured_at: Date.parse("2026-10-13T12:41:00Z") / 1000, rows } },
   };
 }
 
@@ -64,6 +64,10 @@ test("reads the Alliance Power API response and rejects invalid data", () => {
   assert.throws(() => parsePowerSnapshot(apiResponse([]), 2426));
   assert.throws(() => parsePowerSnapshot(apiResponse([row(1, 1), row(1, 2)]), 2426));
   assert.throws(() => parsePowerSnapshot(apiResponse([row(1, 1, -5)]), 2426));
+  assert.throws(() => parsePowerSnapshot({ ...apiResponse(), boards: {} }, 2426));
+  assert.throws(() => parsePowerSnapshot({
+    ...apiResponse(), boards: { "1": { ...apiResponse().boards["1"], type: 2 } },
+  }, 2426));
 });
 
 test("legacy point weeks continue their existing scoring until reset", () => {
@@ -79,36 +83,75 @@ test("legacy point weeks continue their existing scoring until reset", () => {
 
 });
 
-test("average power includes top-10 observations only and retains alliances after they leave", (t) => {
+test("average power includes top-20 observations and retains alliances after they leave", (t) => {
   const first = new Date("2026-10-13T01:01:00Z");
   const powerSnapshot = (rows: ReturnType<typeof row>[]) => parsePowerSnapshot(apiResponse(rows), 2426);
   let week = addUpdate(createWeek(2426, first), powerSnapshot([
-    row(1, 1, 100), row(2, 2, 80), row(3, 11, 60), row(4, 12, 200),
+    row(1, 1, 100), row(2, 2, 80), row(3, 20, 60), row(4, 12, 200), row(6, 21, 50),
   ]), first);
   week = addUpdate(week, powerSnapshot([
     row(1, 1, 200), row(3, 2, 100), row(5, 3, 180), row(4, 11, 300),
   ]), new Date("2026-10-14T01:01:00Z"));
   week = addUpdate(week, powerSnapshot([
-    row(1, 1, 300), row(2, 2, 160), row(3, 11, 80),
+    row(1, 1, 300), row(2, 2, 160), row(3, 20, 80),
   ]), new Date("2026-10-15T01:01:00Z"));
   assert.equal(week.version, 2);
   assert.deepEqual(cumulativeRanking(week).map(({ id, value }) => [id, value]), [
-    [1, 200], [5, 180], [2, 120], [3, 100],
+    [4, 250], [1, 200], [5, 180], [2, 120], [3, 80],
   ]);
-  // Only daily top-10 observations count, even for alliances seen outside it on other days.
   if (week.version !== 2) assert.fail("Expected average-power week");
   assert.equal(week.alliances.find(({ id }) => id === 5)?.observations, 1);
   assert.equal(week.alliances.find(({ id }) => id === 2)?.observations, 2);
-  assert.equal(week.alliances.find(({ id }) => id === 3)?.observations, 1);
-  assert.equal(week.alliances.find(({ id }) => id === 4), undefined);
+  assert.equal(week.alliances.find(({ id }) => id === 3)?.observations, 3);
+  assert.equal(week.alliances.find(({ id }) => id === 4)?.observations, 2);
+  assert.equal(week.alliances.find(({ id }) => id === 6), undefined);
   const stateFile = tempStateFile(t);
   saveStandings(stateFile, week);
   assert.deepEqual(loadStandings(stateFile), week);
   const final = weeklyFinalMessage(week);
   assert.ok(final.includes("[A5] Alliance 5 — 180"));
-  assert.ok(!final.includes("[A4]"));
+  assert.ok(final.includes("[A4] Alliance 4 — 250"));
   assert.ok(!final.includes("Alliance Power"));
   assert.ok(!final.includes("pts"));
+});
+
+test("top-20 history follows an alliance into the displayed top 10 without expanding either list", async (t) => {
+  const stateFile = tempStateFile(t);
+  const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
+  const sent: string[] = [];
+  const run = (time: string, promoted = false) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile, snapshotFile,
+    fetchSnapshot: async () => ({
+      ...dailySnapshot([1], time),
+      alliances: Array.from({ length: 21 }, (_, index) => {
+        const id = index + 1;
+        const rank = promoted && id === 20 ? 1 : promoted && id < 20 ? id + 1 : id;
+        return { ...row(id, rank), id, tag: `A${id}`, power: promoted && id === 20 ? 3000 : 2100 - id * 100 };
+      }),
+    }),
+    send: async (content) => { sent.push(content); },
+  });
+  await run("2026-10-19T01:01:00Z");
+  const first = loadSnapshotLog(snapshotFile)!;
+  assert.deepEqual(first.latest.alliances.map(({ rank }) => rank), Array.from({ length: 20 }, (_, i) => i + 1));
+  assert.ok(!sent[0].includes("[A20]"));
+  await run("2026-10-20T01:01:00Z", true);
+  const week = loadStandings(stateFile)!;
+  if (week.version !== 2) assert.fail("Expected average-power week");
+  assert.deepEqual(week.alliances.find(({ id }) => id === 20), {
+    id: 20, tag: "A20", name: "Alliance 20", totalPower: 3100, observations: 2, reachedTop10: true,
+  });
+  assert.equal(week.alliances.length, 20);
+  assert.equal(cumulativeRanking(week).find(({ id }) => id === 20)?.value, 1550);
+  const log = loadSnapshotLog(snapshotFile)!;
+  assert.ok(log.history.every(({ alliances }) => alliances?.length === 20));
+  const [daily, average] = sent[1].split("## Current Average Power Ranking");
+  assert.equal(daily.match(/^\*\*#/gm)?.length, 10);
+  assert.equal(average.match(/^\*\*#/gm)?.length, 10);
+  assert.match(daily, /\*\*#1\*\* \[A20\] Alliance 20 — 3,000$/m);
+  assert.match(average, /\[A20\] Alliance 20 — 1,550$/m);
+  assert.ok(!sent[1].includes("[A21]"));
+  assert.equal(weeklyFinalMessage(week).match(/^\*\*#/gm)?.length, 10);
 });
 
 test("cumulative averages sort before rounding, break ties by ID, and display at most ten", () => {
@@ -297,7 +340,7 @@ test("invalid or future capture timestamps fail without saving or posting", asyn
   }
 });
 
-test("seven fresh daily top-10 snapshots produce a true weekly average and Monday resets only with fresh data", async (t) => {
+test("seven fresh daily top-20 snapshots produce a true weekly average and Monday resets only with fresh data", async (t) => {
   const stateFile = tempStateFile(t);
   const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
   const sent: string[] = [];
@@ -312,8 +355,8 @@ test("seven fresh daily top-10 snapshots produce a true weekly average and Monda
   for (let day = 12; day <= 18; day++) {
     const time = `2026-10-${day}T01:01:00Z`;
     current = {
-      ...dailySnapshot(Array.from({ length: 12 }, (_, index) => index + 1), time),
-      alliances: Array.from({ length: 12 }, (_, index) => ({
+      ...dailySnapshot(Array.from({ length: 21 }, (_, index) => index + 1), time),
+      alliances: Array.from({ length: 21 }, (_, index) => ({
         id: index + 1, rank: index + 1, tag: `A${index + 1}`,
         name: `Alliance ${index + 1}`, power: powers[day - 12] - index,
       })),
@@ -322,8 +365,8 @@ test("seven fresh daily top-10 snapshots produce a true weekly average and Monda
     const week = loadStandings(stateFile)!;
     const expected = powers.slice(0, day - 11).reduce((sum, power) => sum + power, 0) / (day - 11);
     assert.equal(cumulativeRanking(week)[0].value, expected);
-    assert.equal(week.alliances.length, 10);
-    assert.equal(loadSnapshotLog(snapshotFile)?.latest.alliances.length, 10);
+    assert.equal(week.alliances.length, 20);
+    assert.equal(loadSnapshotLog(snapshotFile)?.latest.alliances.length, 20);
   }
   const snapshots = fs.readFileSync(snapshotFile, "utf8");
   const log = loadSnapshotLog(snapshotFile)!;
@@ -331,8 +374,8 @@ test("seven fresh daily top-10 snapshots produce a true weekly average and Monda
   assert.deepEqual(log.history.map((entry) => entry.alliances?.[0].power), [...powers].reverse());
   assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
   assert.equal(fetched, 7);
-  assert.ok(sent[7].includes("7 daily updates"));
-  assert.ok(sent[7].includes("400 avg power"));
+  assert.ok(sent[7].includes("Calculated from 7 updates"));
+  assert.match(sent[7], /Alliance 1 — 400$/m);
   assert.ok(!sent[7].includes("Today's Alliance Power"));
   assert.equal(fs.readFileSync(snapshotFile, "utf8"), snapshots);
   assert.equal((await run("2026-10-19T00:30:00Z")).status, "skipped");
@@ -348,7 +391,7 @@ test("seven fresh daily top-10 snapshots produce a true weekly average and Monda
   assert.equal(loadStandings(stateFile)?.updates, 1);
   assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
   assert.equal(cumulativeRanking(loadStandings(stateFile)!)[0].value, 900);
-  assert.ok(sent[8].includes("1 daily update"));
+  assert.ok(sent[8].includes("Calculated from 1 update"));
 });
 
 test("a late legacy update does not block the first average-power slot or allow duplicates", async (t) => {
@@ -382,12 +425,13 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   const hour = new Date("2026-10-13T01:01:00Z");
   const message = dailyMessage(current, addUpdate(createWeek(2426, hour), current, hour), hour);
   assert.equal(message.match(/ — \d{3},/g)?.length, 20);
-  assert.equal(message.match(/ — \d{3},\d{3},\d{3}$/gm)?.length, 10);
+  assert.equal(message.match(/ — \d{3},\d{3},\d{3}$/gm)?.length, 20);
+  assert.ok(!message.includes("avg power"));
   assert.ok(!message.includes("pts"));
   assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
   assert.ok(message.includes("Update Tue 13 Oct 01:01 UTC"));
   assert.ok(message.includes("## Current Average Power Ranking"));
-  assert.ok(message.includes("1 daily update"));
+  assert.ok(message.includes("Calculated from 1 update"));
   assert.deepEqual(splitMessage(message), [message]);
 });
 
@@ -413,7 +457,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   await run("2026-10-18T01:01:30Z", [2, 1, 3]);
   assert.equal(sent.length, 2);
   assert.ok(!sent[1].includes("Weekly"));
-  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · Calculated from 2 daily updates"));
+  assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · Calculated from 2 updates"));
   assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 999,999,998\.5/);
   assert.equal(loadStandings(stateFile)?.finalPosted, false);
   const before = loadStandings(stateFile)!;
@@ -431,7 +475,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   await run("2026-10-19T01:01:30Z", [3, 2, 1]);
   assert.equal(sent.length, 4);
   assert.ok(!sent[3].includes("Weekly"));
-  assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · Calculated from 1 daily update"));
+  assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · Calculated from 1 update"));
   assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 999,999,999/);
   assert.equal(loadStandings(stateFile)?.updates, 1);
 });
@@ -449,7 +493,7 @@ test("a missed Monday 00:01 run posts the cumulative-only summary before the nex
   assert.equal(sent.length, 3);
   assert.ok(sent[1].startsWith("## 🏆 Weekly Cumulative Ranking"));
   assert.ok(!sent[1].includes("Alliance Power"));
-  assert.ok(sent[1].includes("1 daily update "));
+  assert.ok(sent[1].includes("Calculated from 1 update ·"));
   assert.ok(sent[2].includes("## Today's Alliance Power"));
   assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
 });
@@ -722,9 +766,10 @@ test("CLI routes forced posts to the test channel and normal posts to the config
     constructor(value) { super(value === undefined ? "2026-10-13T13:01:00Z" : value); }
     static now() { return RealDate.parse("2026-10-13T13:01:00Z"); }
   };
-  globalThis.fetch = async (url) => {
+  globalThis.fetch = async (url, options) => {
     console.log("REQUEST " + url);
-    if (url.startsWith("https://api.mightpulse.com/")) {
+    if (url === "https://mightpulse.com/api/kingdoms/2426/ingame-ranks") {
+      if (new Headers(options?.headers).has("Authorization")) throw new Error("Public rankings must not use API credentials");
       return Response.json(${JSON.stringify(apiResponse())});
     }
     if (url.startsWith("https://discord.com/api/v10/channels/")) {
@@ -745,7 +790,7 @@ test("CLI routes forced posts to the test channel and normal posts to the config
       env: {
         ...process.env,
         KINGDOM: "2426",
-        MIGHTPULSE_API_KEY: "test-key",
+        MIGHTPULSE_API_KEY: "",
         DISCORD_TOKEN: "test-token",
         DISCORD_CHANNEL_ID: "1559288525201866814",
         STATE_FILE: stateFile,

@@ -1,5 +1,5 @@
 import { dailyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
-import type { PowerSnapshot } from "./mightpulse.ts";
+import { TRACKED_ALLIANCE_LIMIT, type PowerSnapshot } from "./mightpulse.ts";
 import { loadSnapshotLog, recordSnapshot, snapshotUse, type SnapshotUse } from "./snapshot-log.ts";
 import { addUpdate, createWeek, loadStandings, replaceDailyUpdate, saveStandings, type WeekStandings } from "./standings.ts";
 import { dueUpdate, hourKey, weekFinal, weekStart } from "./time.ts";
@@ -107,9 +107,9 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
   }
   const snapshot = {
     ...fetched,
-    alliances: fetched.alliances.filter(({ rank }) => rank <= 10).sort((a, b) => a.rank - b.rank),
+    alliances: fetched.alliances.filter(({ rank }) => rank <= TRACKED_ALLIANCE_LIMIT).sort((a, b) => a.rank - b.rank),
   };
-  if (!snapshot.alliances.length) throw new Error("Mightpulse returned no top-10 Alliance Power data.");
+  if (!snapshot.alliances.length) throw new Error("Mightpulse returned no top-20 Alliance Power data.");
   if (week && week.weekStart !== weekStart(hour).toISOString()) {
     week = null;
   }
