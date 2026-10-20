@@ -42,11 +42,11 @@ function weekRange(week: WeekStandings): string {
 }
 
 function updatesText(week: WeekStandings): string {
-  return `Calculated from ${week.updates} daily update${week.updates === 1 ? "" : "s"}`;
+  return `Calculated from ${week.updates} update${week.updates === 1 ? "" : "s"}`;
 }
 
-function footer(snapshot: PowerSnapshot, hour: Date): string {
-  return `-# Update ${formatUtc(hour)} UTC · Mightpulse captured ${formatUtc(snapshot.capturedAt)} UTC`;
+function footer(hour: Date): string {
+  return `-# Update ${formatUtc(hour)} UTC`;
 }
 
 export function dailyMessage(
@@ -61,7 +61,7 @@ export function dailyMessage(
     `-# ${weekRange(week)} · ${updatesText(week)}${week.version === 1 ? " · less pts = better rank" : ""}`,
     ...cumulativeLines(week),
     "",
-    footer(snapshot, hour),
+    footer(hour),
   ].join("\n");
 }
 

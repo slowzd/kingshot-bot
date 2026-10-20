@@ -207,7 +207,8 @@ test("stale data waits across hourly runs without posting, creating files, or co
   assert.equal(sent.length, 2);
   assert.equal(loadStandings(stateFile)?.updates, 2);
   assert.equal(loadStandings(stateFile)?.lastApiCapturedAt, "2026-10-20T00:41:00.000Z");
-  assert.ok(sent[1].includes("Mightpulse captured Tue 20 Oct 00:41 UTC"));
+  assert.ok(sent[1].includes("Update Tue 20 Oct 01:01 UTC"));
+  assert.ok(!sent[1].includes("Mightpulse captured"));
 });
 
 test("a capture newer than yesterday but still from yesterday does not count as today's data", async (t) => {

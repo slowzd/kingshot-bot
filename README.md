@@ -52,7 +52,7 @@ Each posted daily update also writes `snapshot.ts` to the `leaderboard-state` br
 - `latest`: update slot, when the API was fetched, when Mightpulse captured the data (`apiCapturedAt`), its age in minutes, and the accepted daily top 10 (rank, ID, tag, name, power).
 - `history`: the same times **and each day's top-10 data** for up to 336 updates, newest first. Older entries may contain timestamps only.
 
-The run summary in the **Actions** tab says which API snapshot time each update used, or why the bot is waiting. Discord's daily footer includes the source capture time separately from the daily slot. Equal power values on different days are valid if Mightpulse's capture timestamp confirms a new daily snapshot.
+The run summary in the **Actions** tab says which API snapshot time each update used, or why the bot is waiting. Discord's daily footer shows only the update slot. Equal power values on different days are valid if Mightpulse's capture timestamp confirms a new daily snapshot.
 
 ### Timing and reliability
 GitHub's own scheduler delayed or dropped runs, so the workflow has no `schedule:` and is started by cron-job.org instead. Keep the hourly trigger: each run checks the most recent **01:01 UTC** daily slot. The daily update posts only if that slot has not already been posted **and** Mightpulse has a fresh, unused capture for that slot's UTC date. The source capture timestamp and slot are saved on the state branch and survive separate workflow runs. Concurrent workflow runs are serialized. Monday's weekly summary has its own saved duplicate guard and runs independently.
