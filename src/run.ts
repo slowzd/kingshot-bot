@@ -11,12 +11,19 @@ try {
 }
 
 const args = process.argv.slice(2);
-if (args.some((arg) => arg !== "--dry-run" && arg !== "--force")) {
-  throw new Error("Supported options are --dry-run and --force.");
+if (args.some((arg) => arg !== "--dry-run" && arg !== "--force" && arg !== "--correct")) {
+  throw new Error("Supported options are --dry-run, --force and --correct.");
 }
 const dryRun = args.includes("--dry-run");
 const force = args.includes("--force");
+const correct = args.includes("--correct");
+if (correct && force) throw new Error("--correct and --force cannot be combined.");
+const correctionDate = correct ? process.env.CORRECTION_DATE?.trim() : undefined;
+if (correct && (!correctionDate || !/^\d{4}-\d{2}-\d{2}$/.test(correctionDate))) {
+  throw new Error("Set CORRECTION_DATE to the UTC date to correct (YYYY-MM-DD). Use npm run correct to dispatch safely.");
+}
 if (force) console.log("Forced test: bypassing daily guards without saving standings or snapshot history.");
+if (correct) console.log(`Correction: replacing the ${correctionDate} sample without adding another daily observation.`);
 
 function env(name: string): string {
   const value = process.env[name]?.trim();
@@ -47,6 +54,7 @@ const result = await runDailyUpdate({
   },
   dryRun,
   force,
+  correctionDate,
 });
 if (result.status !== "posted") {
   const summary = result.status === "weekly-posted"
@@ -58,7 +66,7 @@ if (result.status !== "posted") {
   const used = result.snapshotUsed;
   const utc = (iso: string) => `${iso.slice(0, 16).replace("T", " ")} UTC`;
   const age = `${Math.floor(used.apiAgeMinutes / 60)}h ${used.apiAgeMinutes % 60}m`;
-  const summary = `Kingdom ${kingdom} update ${utc(used.update)} ${dryRun ? "previewed" : force ? "test posted (not saved)" : "posted"} using Mightpulse snapshot captured ${utc(used.apiCapturedAt)} (${age} old).`;
+  const summary = `Kingdom ${kingdom} update ${utc(used.update)} ${dryRun ? "previewed" : force ? "test posted (not saved)" : correct ? "corrected (sample replaced)" : "posted"} using Mightpulse snapshot captured ${utc(used.apiCapturedAt)} (${age} old).`;
   console.log(summary);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
 }

@@ -46,7 +46,7 @@ function updatesText(week: WeekStandings): string {
 }
 
 function footer(snapshot: PowerSnapshot, hour: Date): string {
-  return `-# Update ${formatUtc(hour)} UTC`;
+  return `-# Update ${formatUtc(hour)} UTC · Mightpulse captured ${formatUtc(snapshot.capturedAt)} UTC`;
 }
 
 export function dailyMessage(

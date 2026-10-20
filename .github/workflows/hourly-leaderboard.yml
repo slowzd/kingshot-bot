@@ -2,8 +2,17 @@ name: Daily Alliance Leaderboard
 
 on:
   # Triggered every hour at XX:01 UTC by an external scheduler (cron-job.org) through the GitHub API,
-  # Checks the 01:01 UTC daily slot and Monday 00:01 weekly summary, once per slot.
+  # Retries the 01:01 UTC daily slot until fresh Mightpulse data is available; summarizes Monday 00:01.
   workflow_dispatch:
+    inputs:
+      correct:
+        description: "Replace today's posted sample and send a correction to the normal channel"
+        type: boolean
+        default: false
+      correction_date:
+        description: "UTC date to correct (YYYY-MM-DD); prevents a queued correction from targeting another day"
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -53,7 +62,14 @@ jobs:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
-        run: node src/run.ts
+          CORRECT_DAILY: ${{ inputs.correct }}
+          CORRECTION_DATE: ${{ inputs.correction_date }}
+        run: |
+          if [ "$CORRECT_DAILY" = "true" ]; then
+            node src/run.ts --correct
+          else
+            node src/run.ts
+          fi
 
       - name: Save standings and snapshot log
         # Also runs after a partial failure so standings that were already posted are saved.

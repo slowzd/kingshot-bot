@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/run.ts",
     "preview": "node src/run.ts --dry-run",
+    "correct": "node src/correct.ts",
     "check": "tsc --noEmit",
     "test": "node --test src/*.test.ts"
   },

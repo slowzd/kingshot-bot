@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { PowerSnapshot } from "./mightpulse.ts";
+import type { Alliance, PowerSnapshot } from "./mightpulse.ts";
 import { hourKey, weekStart } from "./time.ts";
 
 interface AllianceIdentity {
@@ -26,6 +26,8 @@ interface WeekBase {
   lastHour: string | null;
   /** Actual run time of the last successful daily update; absent in legacy hourly state. */
   lastPostedAt?: string;
+  /** Source capture accepted by the last successful daily update. */
+  lastApiCapturedAt?: string;
   finalPosted: boolean;
 }
 
@@ -66,7 +68,7 @@ export function addUpdate(week: WeekStandings, snapshot: PowerSnapshot, hour: Da
 
   if (week.version === 2) {
     const alliances = new Map(week.alliances.map((alliance) => [alliance.id, alliance]));
-    for (const alliance of snapshot.alliances) {
+    for (const alliance of snapshot.alliances.filter(({ rank }) => rank <= 10)) {
       const previous = alliances.get(alliance.id);
       const totalPower = (previous?.totalPower ?? 0) + alliance.power;
       if (!Number.isSafeInteger(totalPower)) throw new Error(`Power total for alliance ${alliance.id} exceeds safe integer precision.`);
@@ -123,6 +125,45 @@ export function cumulativeRanking(week: WeekStandings): (AllianceIdentity & { va
     .sort((a, b) => b.value - a.value || a.id - b.id);
 }
 
+export function replaceDailyUpdate(
+  week: WeekStandings,
+  previous: Alliance[],
+  snapshot: PowerSnapshot,
+  hour: Date,
+): WeekStandings {
+  if (week.version !== 2 || week.finalPosted || week.updates < 1 || week.lastHour !== hourKey(hour)) {
+    throw new Error("Corrections require an existing daily average-power update in the current open week.");
+  }
+  const removed = new Map<number, Alliance>();
+  for (const alliance of previous) {
+    if (removed.has(alliance.id) || !Number.isSafeInteger(alliance.power) || alliance.power < 0) {
+      throw new Error("The saved daily snapshot contains invalid or duplicate power data.");
+    }
+    removed.set(alliance.id, alliance);
+  }
+  if (!removed.size) throw new Error("The saved daily snapshot has no alliance data to replace.");
+  const alliances: PowerStanding[] = [];
+  for (const standing of week.alliances) {
+    const old = removed.get(standing.id);
+    if (!old) {
+      if (standing.observations > week.updates - 1) {
+        throw new Error("The saved daily snapshot is incomplete; cannot safely replace its sample.");
+      }
+      alliances.push(standing);
+      continue;
+    }
+    removed.delete(standing.id);
+    const totalPower = standing.totalPower - old.power;
+    const observations = standing.observations - 1;
+    if (totalPower < 0 || (observations === 0 && totalPower !== 0)) {
+      throw new Error("The saved daily snapshot does not match the saved power totals.");
+    }
+    if (observations > 0) alliances.push({ ...standing, totalPower, observations });
+  }
+  if (removed.size) throw new Error("The saved daily snapshot does not match the saved alliances.");
+  return addUpdate({ ...week, updates: week.updates - 1, alliances }, snapshot, hour);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -141,6 +182,7 @@ function isWeekStandings(data: unknown): data is WeekStandings {
     !isCount(data.updates) ||
     !(data.lastHour === null || (typeof data.lastHour === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}$/.test(data.lastHour))) ||
     !(data.lastPostedAt === undefined || (typeof data.lastPostedAt === "string" && Number.isFinite(Date.parse(data.lastPostedAt)))) ||
+    !(data.lastApiCapturedAt === undefined || (typeof data.lastApiCapturedAt === "string" && Number.isFinite(Date.parse(data.lastApiCapturedAt)))) ||
     typeof data.finalPosted !== "boolean" ||
     !Array.isArray(data.alliances) ||
     !data.alliances.every((row) =>

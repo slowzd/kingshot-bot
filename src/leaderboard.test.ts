@@ -27,6 +27,13 @@ function snapshot(ids: number[]): PowerSnapshot {
   return parsePowerSnapshot(apiResponse(ids.map((id, index) => row(id, index + 1))), 2426);
 }
 
+function dailySnapshot(ids: number[], time: string): PowerSnapshot {
+  return {
+    ...snapshot(ids),
+    capturedAt: new Date(`${dueUpdate(new Date(time)).toISOString().slice(0, 10)}T00:41:00Z`),
+  };
+}
+
 function tempStateFile(t: TestContext): string {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "leaderboard-test-"));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -72,7 +79,7 @@ test("legacy point weeks continue their existing scoring until reset", () => {
 
 });
 
-test("average power includes observed days only and retains alliances after they leave the API", (t) => {
+test("average power includes top-10 observations only and retains alliances after they leave", (t) => {
   const first = new Date("2026-10-13T01:01:00Z");
   const powerSnapshot = (rows: ReturnType<typeof row>[]) => parsePowerSnapshot(apiResponse(rows), 2426);
   let week = addUpdate(createWeek(2426, first), powerSnapshot([
@@ -86,12 +93,14 @@ test("average power includes observed days only and retains alliances after they
   ]), new Date("2026-10-15T01:01:00Z"));
   assert.equal(week.version, 2);
   assert.deepEqual(cumulativeRanking(week).map(({ id, value }) => [id, value]), [
-    [1, 200], [5, 180], [2, 120], [3, 80],
+    [1, 200], [5, 180], [2, 120], [3, 100],
   ]);
-  // Alliance 5 qualifies from just one day; alliance 4 never reached the daily top 10.
+  // Only daily top-10 observations count, even for alliances seen outside it on other days.
   if (week.version !== 2) assert.fail("Expected average-power week");
   assert.equal(week.alliances.find(({ id }) => id === 5)?.observations, 1);
   assert.equal(week.alliances.find(({ id }) => id === 2)?.observations, 2);
+  assert.equal(week.alliances.find(({ id }) => id === 3)?.observations, 1);
+  assert.equal(week.alliances.find(({ id }) => id === 4), undefined);
   const stateFile = tempStateFile(t);
   saveStandings(stateFile, week);
   assert.deepEqual(loadStandings(stateFile), week);
@@ -133,7 +142,7 @@ test("legacy state finishes with points and switches to power at Monday's daily 
   const sent: string[] = [];
   const base = {
     kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], "2026-10-19T01:01:00Z"),
     send: async (content: string) => { sent.push(content); },
   };
   assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T00:01:00Z") })).status, "weekly-posted");
@@ -160,6 +169,184 @@ test("invalid average-power state is rejected and overflowing totals fail explic
   assert.throws(() => addUpdate({
     ...week, alliances: [{ ...week.alliances[0], totalPower: Number.MAX_SAFE_INTEGER }],
   }, snapshot([1]), new Date("2026-10-14T01:01:00Z")), /safe integer precision/);
+  fs.writeFileSync(stateFile, JSON.stringify({ ...week, lastApiCapturedAt: "invalid" }));
+  assert.throws(() => loadStandings(stateFile), /are invalid/);
+});
+
+test("stale data waits across hourly runs without posting, creating files, or counting a sample", async (t) => {
+  const stateFile = tempStateFile(t);
+  const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
+  const sent: string[] = [];
+  let current = dailySnapshot([1, 2], "2026-10-18T01:01:00Z");
+  const run = (time: string) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile, snapshotFile,
+    fetchSnapshot: async () => current,
+    send: async (content) => { sent.push(content); },
+  });
+  for (const time of ["2026-10-19T01:01:00Z", "2026-10-19T02:01:00Z"]) {
+    const result = await run(time);
+    assert.equal(result.status, "skipped");
+    assert.ok(result.status === "skipped" && result.reason.includes("Waiting for Mightpulse"));
+    assert.equal(fs.existsSync(stateFile), false);
+    assert.equal(fs.existsSync(snapshotFile), false);
+  }
+  current = dailySnapshot([1, 2], "2026-10-19T03:01:00Z");
+  assert.equal((await run("2026-10-19T03:01:00Z")).status, "posted");
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+  const saved = fs.readFileSync(stateFile, "utf8");
+  const snapshotSaved = fs.readFileSync(snapshotFile, "utf8");
+  for (const time of ["2026-10-20T01:01:00Z", "2026-10-20T02:01:00Z"]) {
+    assert.equal((await run(time)).status, "skipped");
+    assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
+    assert.equal(fs.readFileSync(snapshotFile, "utf8"), snapshotSaved);
+  }
+  // Unchanged power is legitimate if Mightpulse captured it on the new day.
+  current = dailySnapshot([1, 2], "2026-10-20T03:01:00Z");
+  assert.equal((await run("2026-10-20T03:01:00Z")).status, "posted");
+  assert.equal((await run("2026-10-20T04:01:00Z")).status, "skipped");
+  assert.equal(sent.length, 2);
+  assert.equal(loadStandings(stateFile)?.updates, 2);
+  assert.equal(loadStandings(stateFile)?.lastApiCapturedAt, "2026-10-20T00:41:00.000Z");
+  assert.ok(sent[1].includes("Mightpulse captured Tue 20 Oct 00:41 UTC"));
+});
+
+test("a capture newer than yesterday but still from yesterday does not count as today's data", async (t) => {
+  const stateFile = tempStateFile(t);
+  const run = (time: string, capturedAt: string) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile,
+    fetchSnapshot: async () => ({ ...snapshot([1]), capturedAt: new Date(capturedAt) }),
+    send: async () => {},
+  });
+  await run("2026-10-19T01:01:00Z", "2026-10-19T00:40:00Z");
+  assert.equal((await run("2026-10-20T01:01:00Z", "2026-10-19T23:59:59Z")).status, "skipped");
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+  assert.equal((await run("2026-10-20T02:01:00Z", "2026-10-20T00:00:00Z")).status, "posted");
+  assert.equal(loadStandings(stateFile)?.updates, 2);
+});
+
+test("today's capture is not backdated into yesterday's catch-up slot before 01:01", async (t) => {
+  const stateFile = tempStateFile(t);
+  const current = dailySnapshot([1], "2026-10-20T01:01:00Z");
+  let sent = 0;
+  const run = (time: string) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile,
+    fetchSnapshot: async () => current,
+    send: async () => { sent++; },
+  });
+  assert.equal((await run("2026-10-20T01:00:59Z")).status, "skipped");
+  assert.equal(loadStandings(stateFile), null);
+  assert.equal(sent, 0);
+  assert.equal((await run("2026-10-20T01:01:00Z")).status, "posted");
+  assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-20T01");
+  assert.equal(sent, 1);
+});
+
+test("previously used capture timestamps are rejected with standings or legacy snapshot metadata", async (t) => {
+  for (const source of ["standings", "snapshot", "week-reset"] as const) {
+    const stateFile = tempStateFile(t);
+    const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
+    const now = new Date(source === "week-reset" ? "2026-10-19T02:01:00Z" : "2026-10-20T02:01:00Z");
+    const current = dailySnapshot([1], now.toISOString());
+    const previousSlot = dueUpdate(new Date(now.getTime() - 24 * 60 * 60_000));
+    const week = addUpdate(createWeek(2426, previousSlot), current, previousSlot);
+    if (source !== "snapshot") {
+      saveStandings(stateFile, { ...week, lastApiCapturedAt: current.capturedAt.toISOString() });
+    } else {
+      // The old bot could use tomorrow's capture for a catch-up slot after midnight.
+      saveStandings(stateFile, week);
+      const use = {
+        update: "2026-10-19T01:01:00.000Z", fetchedAt: now.toISOString(),
+        apiCapturedAt: current.capturedAt.toISOString(), apiAgeMinutes: 79,
+      };
+      fs.writeFileSync(snapshotFile, `// Generated by the hourly leaderboard job. Do not edit by hand.\nexport const snapshotLog = ${JSON.stringify({
+        kingdom: 2426, latest: { ...use, alliances: current.alliances }, history: [use],
+      })};\n`);
+    }
+    const saved = fs.readFileSync(stateFile, "utf8");
+    const sent: string[] = [];
+    const result = await runDailyUpdate({
+      now, kingdom: 2426, stateFile, snapshotFile,
+      fetchSnapshot: async () => current,
+      send: async (content) => { sent.push(content); },
+    });
+    if (source === "week-reset") {
+      assert.equal(result.status, "weekly-posted");
+      assert.equal(sent.length, 1);
+      assert.ok(!sent[0].includes("Today's Alliance Power"));
+      assert.deepEqual(loadStandings(stateFile), { ...week, lastApiCapturedAt: current.capturedAt.toISOString(), finalPosted: true });
+    } else {
+      assert.equal(result.status, "skipped");
+      assert.ok(result.status === "skipped" && result.reason.includes("already been used"));
+      assert.equal(sent.length, 0);
+      assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
+    }
+  }
+});
+
+test("invalid or future capture timestamps fail without saving or posting", async (t) => {
+  const stateFile = tempStateFile(t);
+  for (const capturedAt of [new Date(NaN), new Date("2026-10-20T03:00:00Z")]) {
+    await assert.rejects(runDailyUpdate({
+      now: new Date("2026-10-20T02:01:00Z"), kingdom: 2426, stateFile,
+      fetchSnapshot: async () => ({ ...snapshot([1]), capturedAt }),
+      send: async () => { assert.fail("Invalid capture must not post"); },
+    }), /invalid or future capture timestamp/);
+    assert.equal(loadStandings(stateFile), null);
+  }
+});
+
+test("seven fresh daily top-10 snapshots produce a true weekly average and Monday resets only with fresh data", async (t) => {
+  const stateFile = tempStateFile(t);
+  const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
+  const sent: string[] = [];
+  const powers = [100, 200, 600, 300, 400, 500, 700];
+  let current = snapshot([1]);
+  let fetched = 0;
+  const run = (time: string) => runDailyUpdate({
+    now: new Date(time), kingdom: 2426, stateFile, snapshotFile,
+    fetchSnapshot: async () => { fetched++; return current; },
+    send: async (content) => { sent.push(content); },
+  });
+  for (let day = 12; day <= 18; day++) {
+    const time = `2026-10-${day}T01:01:00Z`;
+    current = {
+      ...dailySnapshot(Array.from({ length: 12 }, (_, index) => index + 1), time),
+      alliances: Array.from({ length: 12 }, (_, index) => ({
+        id: index + 1, rank: index + 1, tag: `A${index + 1}`,
+        name: `Alliance ${index + 1}`, power: powers[day - 12] - index,
+      })),
+    };
+    assert.equal((await run(time)).status, "posted");
+    const week = loadStandings(stateFile)!;
+    const expected = powers.slice(0, day - 11).reduce((sum, power) => sum + power, 0) / (day - 11);
+    assert.equal(cumulativeRanking(week)[0].value, expected);
+    assert.equal(week.alliances.length, 10);
+    assert.equal(loadSnapshotLog(snapshotFile)?.latest.alliances.length, 10);
+  }
+  const snapshots = fs.readFileSync(snapshotFile, "utf8");
+  const log = loadSnapshotLog(snapshotFile)!;
+  assert.equal(log.history.length, 7);
+  assert.deepEqual(log.history.map((entry) => entry.alliances?.[0].power), [...powers].reverse());
+  assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
+  assert.equal(fetched, 7);
+  assert.ok(sent[7].includes("7 daily updates"));
+  assert.ok(sent[7].includes("400 avg power"));
+  assert.ok(!sent[7].includes("Today's Alliance Power"));
+  assert.equal(fs.readFileSync(snapshotFile, "utf8"), snapshots);
+  assert.equal((await run("2026-10-19T00:30:00Z")).status, "skipped");
+  assert.equal((await run("2026-10-19T01:01:00Z")).status, "skipped");
+  assert.equal((await run("2026-10-19T02:01:00Z")).status, "skipped");
+  assert.equal(loadStandings(stateFile)?.updates, 7);
+  assert.equal(sent.length, 8);
+  current = {
+    ...dailySnapshot([1], "2026-10-19T03:01:00Z"),
+    alliances: [{ id: 1, rank: 1, tag: "A1", name: "Alliance 1", power: 900 }],
+  };
+  assert.equal((await run("2026-10-19T03:01:00Z")).status, "posted");
+  assert.equal(loadStandings(stateFile)?.updates, 1);
+  assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
+  assert.equal(cumulativeRanking(loadStandings(stateFile)!)[0].value, 900);
+  assert.ok(sent[8].includes("1 daily update"));
 });
 
 test("a late legacy update does not block the first average-power slot or allow duplicates", async (t) => {
@@ -169,10 +356,11 @@ test("a late legacy update does not block the first average-power slot or allow 
   const sent: string[] = [];
   const base = {
     kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
     send: async (content: string) => { sent.push(content); },
   };
-  const run = (time: string) => runDailyUpdate({ ...base, now: new Date(time) });
+  const run = (time: string) => runDailyUpdate({
+    ...base, now: new Date(time), fetchSnapshot: async () => dailySnapshot([1], time),
+  });
   assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
   assert.ok(sent[0].includes("pts"));
   assert.equal((await run("2026-10-19T01:01:00Z")).status, "posted");
@@ -208,7 +396,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
     now: new Date(time),
     kingdom: 2426,
     stateFile,
-    fetchSnapshot: async () => { fetched++; return snapshot(ids); },
+    fetchSnapshot: async () => { fetched++; return dailySnapshot(ids, time); },
     send: async (content) => { sent.push(content); },
   });
 
@@ -250,7 +438,7 @@ test("a missed Monday 00:01 run posts the cumulative-only summary before the nex
   const sent: string[] = [];
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1, 2]),
+    fetchSnapshot: async () => dailySnapshot([1, 2], time),
     send: async (content) => { sent.push(content); },
   });
   await run("2026-10-17T01:05:00Z");
@@ -269,7 +457,7 @@ test("weekly summaries leave snapshots intact and retry failed delivery after a 
   const sent: string[] = [];
   const base = {
     kingdom: 2426, stateFile, snapshotFile,
-    fetchSnapshot: async () => snapshot([1, 2]),
+    fetchSnapshot: async () => dailySnapshot([1, 2], "2026-10-18T23:01:00Z"),
     send: async (content: string) => { sent.push(content); },
   };
   await runDailyUpdate({ ...base, now: new Date("2026-10-18T23:01:00Z") });
@@ -286,7 +474,10 @@ test("weekly summaries leave snapshots intact and retry failed delivery after a 
   assert.equal((await runDailyUpdate(weekly)).status, "weekly-posted");
   assert.deepEqual(loadStandings(stateFile), { ...before, finalPosted: true });
   assert.equal(fs.readFileSync(snapshotFile, "utf8"), snapshotBefore);
-  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "posted");
+  assert.equal((await runDailyUpdate({
+    ...base, now: new Date("2026-10-19T01:01:00Z"),
+    fetchSnapshot: async () => dailySnapshot([1, 2], "2026-10-19T01:01:00Z"),
+  })).status, "posted");
   assert.equal(loadStandings(stateFile)?.updates, 1);
   assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T02:01:00Z") })).status, "skipped");
   assert.equal(sent.length, 3);
@@ -297,7 +488,7 @@ test("a saved catch-up weekly summary is not repeated after the daily API fails"
   const sent: string[] = [];
   const base = {
     kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], "2026-10-18T01:01:00Z"),
     send: async (content: string) => { sent.push(content); },
   };
   await runDailyUpdate({ ...base, now: new Date("2026-10-18T01:01:00Z") });
@@ -309,6 +500,7 @@ test("a saved catch-up weekly summary is not repeated after the daily API fails"
   assert.equal(sent.length, 2);
   assert.equal((await runDailyUpdate({
     ...base, now: new Date("2026-10-19T02:01:00Z"),
+    fetchSnapshot: async () => dailySnapshot([1], "2026-10-19T02:01:00Z"),
   })).status, "posted");
   assert.equal(sent.length, 3);
   assert.equal(sent.filter((message) => message.includes("Weekly Cumulative Ranking")).length, 1);
@@ -329,7 +521,7 @@ test("failed API or Discord requests do not count or block retries", async (t) =
   const stateFile = tempStateFile(t);
   const base = {
     now: new Date("2026-10-13T12:01:00Z"), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], "2026-10-13T12:01:00Z"),
     send: async () => {},
   };
   await assert.rejects(runDailyUpdate({ ...base, fetchSnapshot: async () => { throw new Error("API down"); } }), /API down/);
@@ -346,7 +538,7 @@ test("hourly checks retry until Discord succeeds, then wait for the next 01:01 U
   let discordAvailable = true;
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => { fetched++; return snapshot([1]); },
+    fetchSnapshot: async () => { fetched++; return dailySnapshot([1], time); },
     send: async () => {
       if (!discordAvailable) throw new Error("Discord unavailable");
       deliveries++;
@@ -385,12 +577,12 @@ test("each posted update records the API snapshot it used in a generated .ts fil
   const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile, snapshotFile,
-    fetchSnapshot: async () => snapshot([1, 2]),
+    fetchSnapshot: async () => dailySnapshot([1, 2], time),
     send: async () => {},
   });
   const first = await run("2026-10-13T13:01:30Z");
   assert.equal(first.status, "posted");
-  assert.equal(first.status === "posted" && first.snapshotUsed.apiCapturedAt, "2026-10-13T12:41:00.000Z");
+  assert.equal(first.status === "posted" && first.snapshotUsed.apiCapturedAt, "2026-10-13T00:41:00.000Z");
   await run("2026-10-13T13:20:00Z");
   await run("2026-10-14T13:01:00Z");
 
@@ -399,7 +591,7 @@ test("each posted update records the API snapshot it used in a generated .ts fil
   assert.ok(contents.includes("export const snapshotLog = {"));
   const log = loadSnapshotLog(snapshotFile);
   assert.equal(log?.latest.update, "2026-10-14T01:01:00.000Z");
-  assert.equal(log?.latest.apiCapturedAt, "2026-10-13T12:41:00.000Z");
+  assert.equal(log?.latest.apiCapturedAt, "2026-10-14T00:41:00.000Z");
   assert.deepEqual(log?.latest.alliances.map((alliance) => alliance.id), [1, 2]);
   assert.deepEqual(log?.history.map((use) => use.update), ["2026-10-14T01:01:00.000Z", "2026-10-13T01:01:00.000Z"]);
 });
@@ -410,7 +602,7 @@ test("daily slot protection allows a new slot 31 minutes after catch-up but prev
   let sent = 0;
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => { fetched++; return snapshot([1, 2]); },
+    fetchSnapshot: async () => { fetched++; return dailySnapshot([1, 2], time); },
     send: async () => { sent++; },
   });
   await run("2026-10-14T00:30:00Z");
@@ -433,7 +625,7 @@ test("a long delay catches up once and the next day still posts at 01:01", async
   const stateFile = tempStateFile(t);
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], time),
     send: async () => {},
   });
   await run("2026-10-13T04:01:00Z");
@@ -454,7 +646,7 @@ test("legacy hourly state is retained without blocking the next daily slot", asy
   saveStandings(stateFile, addUpdate(createPointWeek(legacyHour), snapshot([1]), legacyHour));
   const run = (time: string) => runDailyUpdate({
     now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], time),
     send: async () => {},
   });
   assert.equal((await run("2026-10-14T01:01:00Z")).status, "posted");
@@ -467,7 +659,7 @@ test("previews do not persist state and invalid saved posting times fail explici
   const stateFile = tempStateFile(t);
   const base = {
     now: new Date("2026-10-13T01:00:00Z"), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => snapshot([1]),
+    fetchSnapshot: async () => dailySnapshot([1], "2026-10-13T01:00:00Z"),
     send: async () => {},
   };
   assert.equal((await runDailyUpdate({ ...base, dryRun: true })).status, "posted");
@@ -484,7 +676,7 @@ test("forced test posts bypass slot protection without changing standings or sna
   let sent = 0;
   const base = {
     now: new Date("2026-10-13T01:01:00Z"), kingdom: 2426, stateFile, snapshotFile,
-    fetchSnapshot: async () => snapshot([1, 2]),
+    fetchSnapshot: async () => dailySnapshot([1, 2], "2026-10-13T01:01:00Z"),
     send: async () => { sent++; },
   };
   await runDailyUpdate(base);
@@ -500,6 +692,7 @@ test("forced test posts bypass slot protection without changing standings or sna
   assert.equal((await runDailyUpdate(base)).status, "skipped");
   assert.equal((await runDailyUpdate({
     ...base, now: new Date("2026-10-14T01:01:00Z"),
+    fetchSnapshot: async () => dailySnapshot([1, 2], "2026-10-14T01:01:00Z"),
   })).status, "posted");
 });
 
@@ -521,7 +714,12 @@ test("forced posts on fresh state do not create files and still propagate send f
 });
 
 test("CLI routes forced posts to the test channel and normal posts to the configured channel", (t) => {
-  const preload = `globalThis.fetch = async (url) => {
+  const preload = `const RealDate = Date;
+  globalThis.Date = class extends RealDate {
+    constructor(value) { super(value === undefined ? "2026-10-13T13:01:00Z" : value); }
+    static now() { return RealDate.parse("2026-10-13T13:01:00Z"); }
+  };
+  globalThis.fetch = async (url) => {
     console.log("REQUEST " + url);
     if (url.startsWith("https://api.mightpulse.com/")) {
       return Response.json(${JSON.stringify(apiResponse())});
