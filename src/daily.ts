@@ -122,7 +122,7 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
     lastPostedAt: run.now.toISOString(),
     lastApiCapturedAt: snapshot.capturedAt.toISOString(),
   };
-  await post(`${run.correctionDate ? "**Corrected daily update — replaces today's earlier ranking**\n\n" : ""}${dailyMessage(snapshot, updated, hour)}`);
+  await post(`${run.correctionDate ? "Manually pushed to correct error.\n\n" : ""}${dailyMessage(snapshot, updated, hour)}`);
   save(updated);
   const snapshotUsed = run.snapshotFile && !run.dryRun && !run.force
     ? recordSnapshot(run.snapshotFile, snapshot, hour, fetchedAt, Boolean(run.correctionDate))

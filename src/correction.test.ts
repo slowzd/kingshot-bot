@@ -57,7 +57,7 @@ test("correction replaces today's sample, preserves prior days, and does not gro
   assert.equal(log.history.length, 2);
   assert.deepEqual(log.history.map(({ update }) => update), ["2026-10-20T01:01:00.000Z", "2026-10-19T01:01:00.000Z"]);
   assert.deepEqual(log.latest.alliances.map(({ id, power }) => [id, power]), [[4, 600], [1, 500]]);
-  assert.ok(fixture.messages[2].startsWith("**Corrected daily update"));
+  assert.ok(fixture.messages[2].startsWith("Manually pushed to correct error.\n\n"));
   assert.ok(fixture.messages[2].includes("2 daily updates"));
   // An intentional resend of the same capture must still replace, never append.
   await fixture.run("2026-10-20T09:01:00Z", { correctionDate: "2026-10-20" });
