@@ -423,16 +423,27 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   const current = snapshot(ids);
   current.alliances[0].name = "*Bold* _name_";
   const hour = new Date("2026-10-13T01:01:00Z");
-  const message = dailyMessage(current, addUpdate(createWeek(2426, hour), current, hour), hour);
+  const week = addUpdate(createWeek(2426, hour), current, hour);
+  const message = dailyMessage(current, week, hour);
   assert.equal(message.match(/ — \d{3},/g)?.length, 20);
   assert.equal(message.match(/ — \d{3},\d{3},\d{3}$/gm)?.length, 20);
   assert.ok(!message.includes("avg power"));
   assert.ok(!message.includes("pts"));
   assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
   assert.ok(message.includes("Update Tue 13 Oct 01:01 UTC"));
+  assert.match(message.split("\n").at(-1)!, /^> .+/);
   assert.ok(message.includes("## Current Average Power Ranking"));
   assert.ok(message.includes("Calculated from 1 update"));
   assert.deepEqual(splitMessage(message), [message]);
+
+  const sameDay = dailyMessage(current, week, new Date("2026-10-13T23:59:00Z")).split("\n").at(-1);
+  assert.equal(sameDay, message.split("\n").at(-1));
+  const quotesAcrossAWeek = Array.from({ length: 7 }, (_, day) => {
+    const date = new Date(hour);
+    date.setUTCDate(date.getUTCDate() + day);
+    return dailyMessage(current, week, date).split("\n").at(-1);
+  });
+  assert.ok(new Set(quotesAcrossAWeek).size > 1);
 });
 
 test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a new daily week", async (t) => {

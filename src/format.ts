@@ -4,6 +4,9 @@ import { formatUtc, weekFinal } from "./time.ts";
 
 const LIST_SIZE = 10;
 const DISCORD_LIMIT = 2000;
+const DAILY_QUOTES = [
+  "Power is just a tool, greatness comes from how you wield it.",
+];
 
 function escapeMarkdown(text: string): string {
   return text.replace(/[\\*_~`|[\]()<>:#-]/g, "\\$&");
@@ -49,6 +52,15 @@ function footer(hour: Date): string {
   return `-# Update ${formatUtc(hour)} UTC`;
 }
 
+function dailyQuote(hour: Date): string {
+  const date = hour.toISOString().slice(0, 10);
+  let hash = 0x811c9dc5;
+  for (const character of date) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
+  }
+  return DAILY_QUOTES[hash % DAILY_QUOTES.length];
+}
+
 export function dailyMessage(
   snapshot: PowerSnapshot,
   week: WeekStandings,
@@ -62,6 +74,7 @@ export function dailyMessage(
     ...cumulativeLines(week),
     "",
     footer(hour),
+    `> ${dailyQuote(hour)}`,
   ].join("\n");
 }
 
