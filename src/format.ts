@@ -6,6 +6,8 @@ const LIST_SIZE = 10;
 const DISCORD_LIMIT = 2000;
 const DAILY_QUOTES = [
   "Power is just a tool, greatness comes from how you wield it.",
+  "Strength lies not in numbers, but in unity and strategy.",
+  "Do not like your place in the leadboard? Work harder then",
 ];
 
 function escapeMarkdown(text: string): string {
@@ -58,6 +60,9 @@ function dailyQuote(hour: Date): string {
   for (const character of date) {
     hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
   }
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b) >>> 0;
+  hash = (hash ^ (hash >>> 13)) >>> 0;
   return DAILY_QUOTES[hash % DAILY_QUOTES.length];
 }
 
