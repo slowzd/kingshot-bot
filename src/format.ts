@@ -5,9 +5,9 @@ import { formatUtc, weekFinal } from "./time.ts";
 const LIST_SIZE = 10;
 const DISCORD_LIMIT = 2000;
 const DAILY_QUOTES = [
+  "Do not like your place in the leadboard? Work harder then",
   "Power is just a tool, greatness comes from how you wield it.",
   "Strength lies not in numbers, but in unity and strategy.",
-  "Do not like your place in the leadboard? Work harder then",
 ];
 
 function escapeMarkdown(text: string): string {
