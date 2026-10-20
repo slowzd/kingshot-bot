@@ -105,7 +105,7 @@ test("average power includes top-10 observations only and retains alliances afte
   saveStandings(stateFile, week);
   assert.deepEqual(loadStandings(stateFile), week);
   const final = weeklyFinalMessage(week);
-  assert.ok(final.includes("[A5] Alliance 5 — 180 avg power"));
+  assert.ok(final.includes("[A5] Alliance 5 — 180"));
   assert.ok(!final.includes("[A4]"));
   assert.ok(!final.includes("Alliance Power"));
   assert.ok(!final.includes("pts"));
@@ -127,8 +127,8 @@ test("cumulative averages sort before rounding, break ties by ID, and display at
   };
   assert.deepEqual(cumulativeRanking(week).map(({ id }) => id), Array.from({ length: 12 }, (_, index) => index + 1));
   const final = weeklyFinalMessage(week);
-  assert.equal(final.match(/ avg power$/gm)?.length, 10);
-  assert.ok(final.includes("100.33 avg power"));
+  assert.equal(final.match(/ — \d+(?:\.\d+)?$/gm)?.length, 10);
+  assert.ok(final.includes("100.33"));
   assert.ok(!final.includes("[A11]"));
 });
 
@@ -146,10 +146,11 @@ test("legacy state finishes with points and switches to power at Monday's daily 
     send: async (content: string) => { sent.push(content); },
   };
   assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T00:01:00Z") })).status, "weekly-posted");
-  assert.ok(sent[0].includes("1 pts"));
+  assert.ok(sent[0].includes("— 1"));
+  assert.ok(!sent[0].includes("pts"));
   assert.equal(loadStandings(stateFile)?.version, 1);
   assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "posted");
-  assert.ok(sent[1].includes("999,999,999 avg power"));
+  assert.ok(sent[1].includes("— 999,999,999"));
   assert.ok(!sent[1].includes("pts"));
   assert.equal(loadStandings(stateFile)?.version, 2);
   assert.equal(loadStandings(stateFile)?.updates, 1);
@@ -363,9 +364,10 @@ test("a late legacy update does not block the first average-power slot or allow 
     ...base, now: new Date(time), fetchSnapshot: async () => dailySnapshot([1], time),
   });
   assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
-  assert.ok(sent[0].includes("pts"));
+  assert.ok(sent[0].includes("— 1"));
+  assert.ok(!sent[0].includes("pts"));
   assert.equal((await run("2026-10-19T01:01:00Z")).status, "posted");
-  assert.ok(sent[1].includes("avg power"));
+  assert.ok(sent[1].includes("— 999,999,999"));
   assert.equal(loadStandings(stateFile)?.version, 2);
   assert.equal((await run("2026-10-19T02:01:00Z")).status, "skipped");
   assert.equal((await run("2026-10-20T00:01:00Z")).status, "skipped");
@@ -380,7 +382,7 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
   const hour = new Date("2026-10-13T01:01:00Z");
   const message = dailyMessage(current, addUpdate(createWeek(2426, hour), current, hour), hour);
   assert.equal(message.match(/ — \d{3},/g)?.length, 20);
-  assert.equal(message.match(/ avg power$/gm)?.length, 10);
+  assert.equal(message.match(/ — \d{3},\d{3},\d{3}$/gm)?.length, 10);
   assert.ok(!message.includes("pts"));
   assert.ok(message.includes("\\*Bold\\* \\_name\\_"));
   assert.ok(message.includes("Update Tue 13 Oct 01:01 UTC"));
@@ -412,7 +414,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   assert.equal(sent.length, 2);
   assert.ok(!sent[1].includes("Weekly"));
   assert.ok(sent[1].includes("Mon 12 Oct 01:01 – Mon 19 Oct 00:01 UTC · Calculated from 2 daily updates"));
-  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 999,999,998\.5 avg power/);
+  assert.match(sent[1], /\*\*#1\*\* \[A1\] Alliance 1 — 999,999,998\.5/);
   assert.equal(loadStandings(stateFile)?.finalPosted, false);
   const before = loadStandings(stateFile)!;
   assert.equal((await run("2026-10-19T00:00:59Z")).status, "skipped");
@@ -430,7 +432,7 @@ test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a n
   assert.equal(sent.length, 4);
   assert.ok(!sent[3].includes("Weekly"));
   assert.ok(sent[3].includes("Mon 19 Oct 01:01 – Mon 26 Oct 00:01 UTC · Calculated from 1 daily update"));
-  assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 999,999,999 avg power/);
+  assert.match(sent[3], /\*\*#1\*\* \[A3\] Alliance 3 — 999,999,999/);
   assert.equal(loadStandings(stateFile)?.updates, 1);
 });
 

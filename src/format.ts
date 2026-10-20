@@ -31,7 +31,7 @@ function cumulativeLines(week: WeekStandings): string[] {
     .slice(0, LIST_SIZE)
     .map(
       (standing, index) =>
-        `**#${index + 1}** ${allianceLabel(standing)} — ${standing.value.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${week.version === 1 ? "pts" : "avg power"}`,
+        `**#${index + 1}** ${allianceLabel(standing)} — ${standing.value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`,
     );
 }
 
