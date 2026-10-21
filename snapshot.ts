@@ -2,154 +2,302 @@
 export const snapshotLog = {
   "kingdom": 2426,
   "latest": {
-    "update": "2026-10-20T01:01:00.000Z",
-    "fetchedAt": "2026-10-20T07:25:04.071Z",
-    "apiCapturedAt": "2026-10-20T00:41:23.892Z",
-    "apiAgeMinutes": 404,
+    "update": "2026-10-21T01:01:00.000Z",
+    "fetchedAt": "2026-10-21T02:01:16.663Z",
+    "apiCapturedAt": "2026-10-21T00:40:59.787Z",
+    "apiAgeMinutes": 80,
     "alliances": [
       {
+        "rank": 1,
         "id": 243500078,
         "tag": "WIN",
         "name": "Winners",
-        "power": 3906561972,
-        "rank": 1
+        "power": 3939844577
       },
       {
+        "rank": 2,
         "id": 243500085,
         "tag": "WTR",
         "name": "Winterfell",
-        "power": 3888329641,
-        "rank": 2
+        "power": 3936521907
       },
       {
-        "id": 243500008,
-        "tag": "RxR",
-        "name": "RisexRanger",
-        "power": 3607201384,
-        "rank": 3
-      },
-      {
+        "rank": 3,
         "id": 243500004,
         "tag": "CLM",
         "name": "CalmDown",
-        "power": 3439394409,
-        "rank": 4
+        "power": 3485175262
       },
       {
+        "rank": 4,
+        "id": 243500008,
+        "tag": "RxR",
+        "name": "RisexRanger",
+        "power": 3419100467
+      },
+      {
+        "rank": 5,
         "id": 243500045,
         "tag": "SAO",
         "name": "StrongerAsOne",
-        "power": 2269121918,
-        "rank": 5
+        "power": 2153591257
       },
       {
+        "rank": 6,
         "id": 243500113,
         "tag": "ZYN",
         "name": "ZYRON",
-        "power": 1982983257,
-        "rank": 6
+        "power": 1955823861
       },
       {
+        "rank": 7,
         "id": 243500086,
         "tag": "WRS",
         "name": "WarriorsS",
-        "power": 1747134771,
-        "rank": 7
+        "power": 1757564438
       },
       {
-        "id": 243500002,
-        "tag": "STC",
-        "name": "Sthtoconsider",
-        "power": 1714348964,
-        "rank": 8
-      },
-      {
+        "rank": 8,
         "id": 243500119,
         "tag": "Win",
         "name": "Win",
-        "power": 1688739945,
-        "rank": 9
+        "power": 1753837125
       },
       {
-        "id": 243500353,
-        "tag": "BET",
-        "name": "Besties",
-        "power": 1611623171,
-        "rank": 10
+        "rank": 9,
+        "id": 243500002,
+        "tag": "STC",
+        "name": "Sthtoconsider",
+        "power": 1740458359
       },
       {
+        "rank": 10,
         "id": 243500325,
         "tag": "xRx",
         "name": "FAFO",
-        "power": 1588484064,
-        "rank": 11
+        "power": 1692956467
       },
       {
+        "rank": 11,
+        "id": 243500353,
+        "tag": "BET",
+        "name": "Besties",
+        "power": 1655393239
+      },
+      {
+        "rank": 12,
         "id": 243500016,
         "tag": "Clm",
         "name": "CLMacademy",
-        "power": 1221351482,
-        "rank": 12
+        "power": 1236448164
       },
       {
+        "rank": 13,
         "id": 243500746,
         "tag": "LFG",
         "name": "BestAlliance",
-        "power": 1095704880,
-        "rank": 13
+        "power": 1129134038
       },
       {
+        "rank": 14,
         "id": 243500017,
         "tag": "Sao",
         "name": "SAOAcademie",
-        "power": 928313894,
-        "rank": 14
+        "power": 936536514
       },
       {
+        "rank": 15,
         "id": 243500023,
         "tag": "RBL",
         "name": "REBELS",
-        "power": 692125106,
-        "rank": 15
+        "power": 703475179
       },
       {
+        "rank": 16,
         "id": 243500248,
         "tag": "bet",
         "name": "BestAcademy",
-        "power": 509848589,
-        "rank": 16
+        "power": 512429757
       },
       {
+        "rank": 17,
         "id": 243500518,
         "tag": "SPA",
         "name": "ESPAÑA",
-        "power": 370744764,
-        "rank": 17
+        "power": 376080545
       },
       {
+        "rank": 18,
         "id": 243500643,
         "tag": "VHh",
         "name": "AlwaysACTIVE",
-        "power": 289426929,
-        "rank": 18
+        "power": 293817590
       },
       {
+        "rank": 19,
         "id": 243500915,
         "tag": "DxC",
         "name": "FIGHTER",
-        "power": 276617627,
-        "rank": 19
+        "power": 271190400
       },
       {
+        "rank": 20,
         "id": 243500231,
         "tag": "RGN",
         "name": "RägNärøK",
-        "power": 256358276,
-        "rank": 20
+        "power": 267989186
       }
     ]
   },
   "history": [
+    {
+      "update": "2026-10-21T01:01:00.000Z",
+      "fetchedAt": "2026-10-21T02:01:16.663Z",
+      "apiCapturedAt": "2026-10-21T00:40:59.787Z",
+      "apiAgeMinutes": 80,
+      "alliances": [
+        {
+          "rank": 1,
+          "id": 243500078,
+          "tag": "WIN",
+          "name": "Winners",
+          "power": 3939844577
+        },
+        {
+          "rank": 2,
+          "id": 243500085,
+          "tag": "WTR",
+          "name": "Winterfell",
+          "power": 3936521907
+        },
+        {
+          "rank": 3,
+          "id": 243500004,
+          "tag": "CLM",
+          "name": "CalmDown",
+          "power": 3485175262
+        },
+        {
+          "rank": 4,
+          "id": 243500008,
+          "tag": "RxR",
+          "name": "RisexRanger",
+          "power": 3419100467
+        },
+        {
+          "rank": 5,
+          "id": 243500045,
+          "tag": "SAO",
+          "name": "StrongerAsOne",
+          "power": 2153591257
+        },
+        {
+          "rank": 6,
+          "id": 243500113,
+          "tag": "ZYN",
+          "name": "ZYRON",
+          "power": 1955823861
+        },
+        {
+          "rank": 7,
+          "id": 243500086,
+          "tag": "WRS",
+          "name": "WarriorsS",
+          "power": 1757564438
+        },
+        {
+          "rank": 8,
+          "id": 243500119,
+          "tag": "Win",
+          "name": "Win",
+          "power": 1753837125
+        },
+        {
+          "rank": 9,
+          "id": 243500002,
+          "tag": "STC",
+          "name": "Sthtoconsider",
+          "power": 1740458359
+        },
+        {
+          "rank": 10,
+          "id": 243500325,
+          "tag": "xRx",
+          "name": "FAFO",
+          "power": 1692956467
+        },
+        {
+          "rank": 11,
+          "id": 243500353,
+          "tag": "BET",
+          "name": "Besties",
+          "power": 1655393239
+        },
+        {
+          "rank": 12,
+          "id": 243500016,
+          "tag": "Clm",
+          "name": "CLMacademy",
+          "power": 1236448164
+        },
+        {
+          "rank": 13,
+          "id": 243500746,
+          "tag": "LFG",
+          "name": "BestAlliance",
+          "power": 1129134038
+        },
+        {
+          "rank": 14,
+          "id": 243500017,
+          "tag": "Sao",
+          "name": "SAOAcademie",
+          "power": 936536514
+        },
+        {
+          "rank": 15,
+          "id": 243500023,
+          "tag": "RBL",
+          "name": "REBELS",
+          "power": 703475179
+        },
+        {
+          "rank": 16,
+          "id": 243500248,
+          "tag": "bet",
+          "name": "BestAcademy",
+          "power": 512429757
+        },
+        {
+          "rank": 17,
+          "id": 243500518,
+          "tag": "SPA",
+          "name": "ESPAÑA",
+          "power": 376080545
+        },
+        {
+          "rank": 18,
+          "id": 243500643,
+          "tag": "VHh",
+          "name": "AlwaysACTIVE",
+          "power": 293817590
+        },
+        {
+          "rank": 19,
+          "id": 243500915,
+          "tag": "DxC",
+          "name": "FIGHTER",
+          "power": 271190400
+        },
+        {
+          "rank": 20,
+          "id": 243500231,
+          "tag": "RGN",
+          "name": "RägNärøK",
+          "power": 267989186
+        }
+      ]
+    },
     {
       "update": "2026-10-20T01:01:00.000Z",
       "fetchedAt": "2026-10-20T07:25:04.071Z",
