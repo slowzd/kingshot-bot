@@ -75,7 +75,7 @@ export function dailyMessage(
     ...powerSection(snapshot),
     "",
     "## Current Average Power Ranking",
-    `-# ${weekRange(week)} · ${updatesText(week)}${week.version === 1 ? " · less pts = better rank" : ""}`,
+    `-# ${weekRange(week)} · ${updatesText(week)}`,
     ...cumulativeLines(week),
     "",
     footer(hour),
@@ -87,7 +87,7 @@ export function weeklyFinalMessage(week: WeekStandings): string {
   return [
     "## 🏆 Weekly Cumulative Ranking",
     `-# ${weekRange(week)} · ${updatesText(week)} · New ranking starts Monday 01:01 UTC`,
-    ...(week.version === 2 ? ["-# Average observed daily power"] : []),
+    "-# Average observed daily power",
     ...cumulativeLines(week),
   ].join("\n");
 }

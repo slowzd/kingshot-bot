@@ -42,9 +42,9 @@ The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hou
 
 Weekly standings are saved as `leaderboard.json` on the `leaderboard-state` branch, which the workflow creates and updates itself. Delete that branch to reset the standings.
 
-Existing version-1 point-based standings finish their current week with the old scoring, including the Monday 00:01 weekly summary. Ranking values display without `pts` or `avg power` suffixes. At the next Monday daily reset, version-2 standings start tracking average power. Old points are not converted into power samples. The last saved slot prevents duplicate posts during migration. Deleting the state branch also clears duplicate protection.
+Only version-2 average-power standings are supported. Legacy version-1 point-based files are rejected explicitly, without posting or overwriting them. Archive any such standings before starting with a new state file; deleting the state branch also clears duplicate protection. Current version-2 standings continue unchanged.
 
-Existing saved averages and previously counted samples are not rewritten. New samples use the daily top 20; ranks 11–20 from earlier top-10-only snapshots cannot be recovered retroactively. Existing version-2 observations remain in that week's totals until the next weekly reset. Older standings without a saved source timestamp use the snapshot log's latest capture when available; the UTC-date check also applies when no history exists.
+Existing saved averages and previously counted samples are not rewritten. New samples use the daily top 20; ranks 11–20 from earlier top-10-only snapshots cannot be recovered retroactively. Existing observations remain in that week's totals until the next weekly reset. Duplicate capture checks use the source timestamp saved in the standings, not older snapshot-log migration metadata.
 
 There is no elapsed-time cooldown. A late Sunday update does not block Monday's fresh average-power update, and late daily updates never delay the next day's slot.
 
@@ -98,7 +98,7 @@ The command requests a correction for **today's UTC date**, at or after **01:01 
 
 The workflow:
 1. Waits in the same concurrency group as normal cron runs and loads `leaderboard-state`.
-2. Requires an existing, open average-power week with today's accepted daily slot and its matching saved snapshot. It cannot correct an older day, a closed week, or legacy point-based standings.
+2. Requires an existing, open average-power week with today's accepted daily slot and its matching saved snapshot. It cannot correct an older day or a closed week.
 3. Fetches the latest Mightpulse capture for today's UTC date. It bypasses the already-posted guard and permits reusing today's capture, but does not accept stale or future-dated data.
 4. Subtracts the old sample, applies the latest top 20, and recalculates the weekly average **without increasing the daily update count**. Alliances with no remaining observations are removed. Existing historical observations are preserved.
 5. Sends a **new correction message to the normal channel**. It does not edit or delete the previous Discord message.

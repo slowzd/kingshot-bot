@@ -8,7 +8,7 @@ import { dailyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
 import { runDailyUpdate } from "./daily.ts";
 import { parsePowerSnapshot, type PowerSnapshot } from "./mightpulse.ts";
 import { loadSnapshotLog } from "./snapshot-log.ts";
-import { addUpdate, createWeek, cumulativeRanking, loadStandings, saveStandings, type PointWeek } from "./standings.ts";
+import { addUpdate, createWeek, cumulativeRanking, loadStandings, saveStandings } from "./standings.ts";
 import { dueUpdate, hourKey, weekFinal, weekStart } from "./time.ts";
 
 function row(id: number, rank: number, power = 1_000_000_000 - rank) {
@@ -38,10 +38,6 @@ function tempStateFile(t: TestContext): string {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "leaderboard-test-"));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return path.join(directory, "leaderboard.json");
-}
-
-function createPointWeek(hour: Date): PointWeek {
-  return { ...createWeek(2426, hour), version: 1, absentPoints: 0, alliances: [] };
 }
 
 test("daily slots stay at 01:01 UTC and weekly summaries are due Monday 00:01", () => {
@@ -85,17 +81,10 @@ test("accepts Mightpulse responses without the optional ok flag while preserving
   }, 2426), /invalid Alliance Power row/);
 });
 
-test("legacy point weeks continue their existing scoring until reset", () => {
+test("average-power updates reject hours older than the last counted hour", () => {
   const first = new Date("2026-10-13T01:00:00Z");
-  let week = addUpdate(createPointWeek(first), snapshot([1, 2, 3]), first);
+  const week = addUpdate(createWeek(2426, first), snapshot([1, 2, 3]), first);
   assert.throws(() => addUpdate(week, snapshot([1, 2, 3]), new Date("2026-10-12T01:00:00Z")), /older than the last counted hour/);
-  week = addUpdate(week, snapshot([2, 1, 4]), new Date("2026-10-14T01:00:00Z"));
-  assert.equal(week.version, 1);
-  const points = Object.fromEntries(cumulativeRanking(week).map((standing) => [standing.id, standing.value]));
-  assert.deepEqual(points, { 1: 3, 2: 3, 3: 7, 4: 7 });
-  assert.equal(week.updates, 2);
-  assert.deepEqual(cumulativeRanking(week).map((standing) => standing.id), [1, 2, 3, 4]);
-
 });
 
 test("average power includes top-20 observations and retains alliances after they leave", (t) => {
@@ -114,7 +103,6 @@ test("average power includes top-20 observations and retains alliances after the
   assert.deepEqual(cumulativeRanking(week).map(({ id, value }) => [id, value]), [
     [4, 250], [1, 200], [5, 180], [2, 120], [3, 80],
   ]);
-  if (week.version !== 2) assert.fail("Expected average-power week");
   assert.equal(week.alliances.find(({ id }) => id === 5)?.observations, 1);
   assert.equal(week.alliances.find(({ id }) => id === 2)?.observations, 2);
   assert.equal(week.alliances.find(({ id }) => id === 3)?.observations, 3);
@@ -152,9 +140,8 @@ test("top-20 history follows an alliance into the displayed top 10 without expan
   assert.ok(!sent[0].includes("[A20]"));
   await run("2026-10-20T01:01:00Z", true);
   const week = loadStandings(stateFile)!;
-  if (week.version !== 2) assert.fail("Expected average-power week");
   assert.deepEqual(week.alliances.find(({ id }) => id === 20), {
-    id: 20, tag: "A20", name: "Alliance 20", totalPower: 3100, observations: 2, reachedTop10: true,
+    id: 20, tag: "A20", name: "Alliance 20", totalPower: 3100, observations: 2,
   });
   assert.equal(week.alliances.length, 20);
   assert.equal(cumulativeRanking(week).find(({ id }) => id === 20)?.value, 1550);
@@ -173,14 +160,13 @@ test("cumulative averages sort before rounding, break ties by ID, and display at
   const hour = new Date("2026-10-13T01:01:00Z");
   let week = createWeek(2426, hour);
   assert.equal(week.version, 2);
-  if (week.version !== 2) assert.fail("Expected average-power week");
   week = {
     ...week,
     updates: 3,
     alliances: Array.from({ length: 12 }, (_, index) => ({
       id: index + 1, tag: `A${index + 1}`, name: `Alliance ${index + 1}`,
       totalPower: index < 2 ? 301 : 300,
-      observations: 3, reachedTop10: true,
+      observations: 3,
     })),
   };
   assert.deepEqual(cumulativeRanking(week).map(({ id }) => id), Array.from({ length: 12 }, (_, index) => index + 1));
@@ -190,37 +176,27 @@ test("cumulative averages sort before rounding, break ties by ID, and display at
   assert.ok(!final.includes("[A11]"));
 });
 
-test("legacy state finishes with points and switches to power at Monday's daily reset", async (t) => {
+test("unsupported standings versions fail without posting or changing saved state", async (t) => {
   const stateFile = tempStateFile(t);
-  const sunday = new Date("2026-10-18T01:01:00Z");
-  saveStandings(stateFile, {
-    ...addUpdate(createPointWeek(sunday), snapshot([1]), sunday),
-    lastPostedAt: sunday.toISOString(),
-  });
-  const sent: string[] = [];
-  const base = {
-    kingdom: 2426, stateFile,
-    fetchSnapshot: async () => dailySnapshot([1], "2026-10-19T01:01:00Z"),
-    send: async (content: string) => { sent.push(content); },
-  };
-  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T00:01:00Z") })).status, "weekly-posted");
-  assert.ok(sent[0].includes("— 1"));
-  assert.ok(!sent[0].includes("pts"));
-  assert.equal(loadStandings(stateFile)?.version, 1);
-  assert.equal((await runDailyUpdate({ ...base, now: new Date("2026-10-19T01:01:00Z") })).status, "posted");
-  assert.ok(sent[1].includes("— 999,999,999"));
-  assert.ok(!sent[1].includes("pts"));
-  assert.equal(loadStandings(stateFile)?.version, 2);
-  assert.equal(loadStandings(stateFile)?.updates, 1);
+  const now = new Date("2026-10-19T01:01:00Z");
+  for (const version of [1, 3]) {
+    const saved = JSON.stringify({ ...createWeek(2426, now), version });
+    fs.writeFileSync(stateFile, saved);
+    await assert.rejects(runDailyUpdate({
+      now, kingdom: 2426, stateFile,
+      fetchSnapshot: async () => { assert.fail("Unsupported state must not fetch"); },
+      send: async () => { assert.fail("Unsupported state must not post"); },
+    }), /unsupported version.*only version 2/);
+    assert.equal(fs.readFileSync(stateFile, "utf8"), saved);
+  }
 });
 
 test("invalid average-power state is rejected and overflowing totals fail explicitly", (t) => {
   const stateFile = tempStateFile(t);
   const hour = new Date("2026-10-13T01:01:00Z");
   const week = addUpdate(createWeek(2426, hour), snapshot([1]), hour);
-  if (week.version !== 2) assert.fail("Expected average-power week");
   for (const invalid of [
-    { observations: 0 }, { observations: 2 }, { totalPower: -1 }, { reachedTop10: "yes" },
+    { observations: 0 }, { observations: 2 }, { totalPower: -1 },
   ]) {
     fs.writeFileSync(stateFile, JSON.stringify({ ...week, alliances: [{ ...week.alliances[0], ...invalid }] }));
     assert.throws(() => loadStandings(stateFile), /are invalid/);
@@ -301,27 +277,15 @@ test("today's capture is not backdated into yesterday's catch-up slot before 01:
   assert.equal(sent, 1);
 });
 
-test("previously used capture timestamps are rejected with standings or legacy snapshot metadata", async (t) => {
-  for (const source of ["standings", "snapshot", "week-reset"] as const) {
+test("previously used capture timestamps are rejected within a week and across resets", async (t) => {
+  for (const source of ["standings", "week-reset"]) {
     const stateFile = tempStateFile(t);
     const snapshotFile = path.join(path.dirname(stateFile), "snapshot.ts");
     const now = new Date(source === "week-reset" ? "2026-10-19T02:01:00Z" : "2026-10-20T02:01:00Z");
     const current = dailySnapshot([1], now.toISOString());
     const previousSlot = dueUpdate(new Date(now.getTime() - 24 * 60 * 60_000));
     const week = addUpdate(createWeek(2426, previousSlot), current, previousSlot);
-    if (source !== "snapshot") {
-      saveStandings(stateFile, { ...week, lastApiCapturedAt: current.capturedAt.toISOString() });
-    } else {
-      // The old bot could use tomorrow's capture for a catch-up slot after midnight.
-      saveStandings(stateFile, week);
-      const use = {
-        update: "2026-10-19T01:01:00.000Z", fetchedAt: now.toISOString(),
-        apiCapturedAt: current.capturedAt.toISOString(), apiAgeMinutes: 79,
-      };
-      fs.writeFileSync(snapshotFile, `// Generated by the hourly leaderboard job. Do not edit by hand.\nexport const snapshotLog = ${JSON.stringify({
-        kingdom: 2426, latest: { ...use, alliances: current.alliances }, history: [use],
-      })};\n`);
-    }
+    saveStandings(stateFile, { ...week, lastApiCapturedAt: current.capturedAt.toISOString() });
     const saved = fs.readFileSync(stateFile, "utf8");
     const sent: string[] = [];
     const result = await runDailyUpdate({
@@ -407,30 +371,6 @@ test("seven fresh daily top-20 snapshots produce a true weekly average and Monda
   assert.equal(loadStandings(stateFile)?.weekStart, "2026-10-19T01:00:00.000Z");
   assert.equal(cumulativeRanking(loadStandings(stateFile)!)[0].value, 900);
   assert.ok(sent[8].includes("Calculated from 1 update"));
-});
-
-test("a late legacy update does not block the first average-power slot or allow duplicates", async (t) => {
-  const stateFile = tempStateFile(t);
-  const sunday = new Date("2026-10-18T18:00:00Z");
-  saveStandings(stateFile, addUpdate(createPointWeek(sunday), snapshot([1]), sunday));
-  const sent: string[] = [];
-  const base = {
-    kingdom: 2426, stateFile,
-    send: async (content: string) => { sent.push(content); },
-  };
-  const run = (time: string) => runDailyUpdate({
-    ...base, now: new Date(time), fetchSnapshot: async () => dailySnapshot([1], time),
-  });
-  assert.equal((await run("2026-10-19T00:01:00Z")).status, "weekly-posted");
-  assert.ok(sent[0].includes("— 1"));
-  assert.ok(!sent[0].includes("pts"));
-  assert.equal((await run("2026-10-19T01:01:00Z")).status, "posted");
-  assert.ok(sent[1].includes("— 999,999,999"));
-  assert.equal(loadStandings(stateFile)?.version, 2);
-  assert.equal((await run("2026-10-19T02:01:00Z")).status, "skipped");
-  assert.equal((await run("2026-10-20T00:01:00Z")).status, "skipped");
-  assert.equal((await run("2026-10-20T01:01:00Z")).status, "posted");
-  assert.equal(sent.length, 3);
 });
 
 test("message shows top 10 power and cumulative ranking within Discord limits", () => {
@@ -713,21 +653,6 @@ test("a long delay catches up once and the next day still posts at 01:01", async
   assert.equal(loadStandings(stateFile)?.lastHour, "2026-10-22T01");
 });
 
-test("legacy hourly state is retained without blocking the next daily slot", async (t) => {
-  const stateFile = tempStateFile(t);
-  const legacyHour = new Date("2026-10-13T13:00:00Z");
-  saveStandings(stateFile, addUpdate(createPointWeek(legacyHour), snapshot([1]), legacyHour));
-  const run = (time: string) => runDailyUpdate({
-    now: new Date(time), kingdom: 2426, stateFile,
-    fetchSnapshot: async () => dailySnapshot([1], time),
-    send: async () => {},
-  });
-  assert.equal((await run("2026-10-14T01:01:00Z")).status, "posted");
-  assert.equal((await run("2026-10-14T12:01:00Z")).status, "skipped");
-  assert.equal(loadStandings(stateFile)?.updates, 2);
-  assert.equal(loadStandings(stateFile)?.lastPostedAt, "2026-10-14T01:01:00.000Z");
-});
-
 test("previews do not persist state and invalid saved posting times fail explicitly", async (t) => {
   const stateFile = tempStateFile(t);
   const base = {
@@ -816,7 +741,6 @@ test("CLI routes forced posts to the test channel and normal posts to the config
       env: {
         ...process.env,
         KINGDOM: "2426",
-        MIGHTPULSE_API_KEY: "",
         DISCORD_TOKEN: "test-token",
         DISCORD_CHANNEL_ID: "1559288525201866814",
         STATE_FILE: stateFile,

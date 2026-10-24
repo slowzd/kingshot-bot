@@ -41,7 +41,7 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
       run.correctionDate !== hour.toISOString().slice(0, 10)
     ) throw new Error("A correction must run on its requested UTC date, at or after 01:01 UTC.");
     if (
-      !week || week.kingdom !== run.kingdom || week.version !== 2 ||
+      !week || week.kingdom !== run.kingdom ||
       week.weekStart !== weekStart(hour).toISOString() || week.finalPosted ||
       run.now >= weekFinal(new Date(week.weekStart)) || week.lastHour !== hourKey(hour) ||
       !correctionLog || correctionLog.kingdom !== run.kingdom ||
@@ -96,11 +96,7 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
       if (run.correctionDate) throw new Error("Mightpulse has no capture for today's UTC date; correction not posted.");
       return skip(`Waiting for Mightpulse data for ${hour.toISOString().slice(0, 10)} UTC; latest capture is ${fetched.capturedAt.toISOString()}.`);
     }
-    const previousLog = run.snapshotFile && !week?.lastApiCapturedAt
-      ? loadSnapshotLog(run.snapshotFile)
-      : null;
-    const lastCapture = week?.lastApiCapturedAt ??
-      (previousLog?.kingdom === run.kingdom ? previousLog.latest.apiCapturedAt : undefined);
+    const lastCapture = week?.lastApiCapturedAt;
     if (!run.correctionDate && lastCapture && captureTime <= Date.parse(lastCapture)) {
       return skip(`Waiting for a newer Mightpulse capture; ${lastCapture} has already been used.`);
     }
@@ -117,7 +113,7 @@ export async function runDailyUpdate(run: DailyRun): Promise<DailyResult> {
   const updated = {
     ...(run.correctionDate && week && correctionLog
       ? replaceDailyUpdate(week, correctionLog.latest.alliances, snapshot, hour)
-      : addUpdate(week ?? createWeek(run.kingdom, hour), week?.version === 1 ? fetched : snapshot, hour)),
+      : addUpdate(week ?? createWeek(run.kingdom, hour), snapshot, hour)),
     finalPosted: false,
     lastPostedAt: run.now.toISOString(),
     lastApiCapturedAt: snapshot.capturedAt.toISOString(),
