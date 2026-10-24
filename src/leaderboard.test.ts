@@ -70,6 +70,21 @@ test("reads the Alliance Power API response and rejects invalid data", () => {
   }, 2426));
 });
 
+test("accepts Mightpulse responses without the optional ok flag while preserving validation", () => {
+  const { ok, ...data } = apiResponse([row(2, 2), row(1, 1)]);
+  assert.deepEqual(parsePowerSnapshot(data, 2426), parsePowerSnapshot({ ...data, ok }, 2426));
+  for (const invalidFlag of [false, null, 1, "true"]) {
+    assert.throws(() => parsePowerSnapshot({ ...data, ok: invalidFlag }, 2426), /invalid response/);
+  }
+  assert.throws(() => parsePowerSnapshot(data, 2446), /invalid response/);
+  assert.throws(() => parsePowerSnapshot({ kid: 2426 }, 2426), /invalid response/);
+  assert.throws(() => parsePowerSnapshot({ ...data, boards: {} }, 2426), /no Alliance Power ranking/);
+  assert.throws(() => parsePowerSnapshot({
+    ...data,
+    boards: { "1": { ...data.boards["1"], rows: [row(1, 1, -5)] } },
+  }, 2426), /invalid Alliance Power row/);
+});
+
 test("legacy point weeks continue their existing scoring until reset", () => {
   const first = new Date("2026-10-13T01:00:00Z");
   let week = addUpdate(createPointWeek(first), snapshot([1, 2, 3]), first);

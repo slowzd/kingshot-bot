@@ -23,7 +23,12 @@ function isPositiveInteger(value: unknown): value is number {
 }
 
 export function parsePowerSnapshot(data: unknown, kingdom: number): PowerSnapshot {
-  if (!isRecord(data) || data.ok !== true || data.kid !== kingdom || !isRecord(data.boards)) {
+  if (
+    !isRecord(data) ||
+    ("ok" in data && data.ok !== true) ||
+    data.kid !== kingdom ||
+    !isRecord(data.boards)
+  ) {
     throw new Error(`Mightpulse returned an invalid response for kingdom ${kingdom}.`);
   }
   const board = data.boards["1"];

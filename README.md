@@ -8,6 +8,8 @@ When the daily update is due:
 2. If Mightpulse has not captured that day's data yet, do not post, change standings, or save a snapshot. Leave the slot open for the next hourly workflow run.
 3. Once fresh data is available, take only alliances ranked **1–10**, save their snapshot after successful delivery, and post **Today's Alliance Power — Top 10** plus **Current Average Power Ranking** below it.
 
+Mightpulse responses may omit the top-level `ok` flag. Both formats are accepted; when present, `ok` must be `true`. The kingdom, Alliance Power board, and alliance rows are still validated before use.
+
 Each successful daily update records that day's **top 20**, while displaying only the **top 10** daily power and average power rankings. **Average power = sum of accepted daily top-20 power / number of top-20 observations**, with the highest average ranked first. This is a true weekly average, not `(yesterday's average + today's power) / 2`: powers of 100, 200, and 600 produce averages of 100, 150, and 300. Monday's first accepted sample naturally has its daily power as its average.
 
 Alliances observed in the daily **top 20 at least once that week** qualify for the average ranking, which displays the 10 highest averages. Observations at ranks 11–20 count even before an alliance enters the displayed top 10. When an alliance drops below the daily top 20, its saved average remains unchanged until it returns. Missing days do not count as zero; stale data and missed workflow runs add no samples. Eligibility does not guarantee a displayed place if ten other qualifying alliances have higher averages. Equal averages are ordered by alliance ID; displayed averages use up to two decimal places.
