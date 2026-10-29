@@ -77,7 +77,10 @@ export async function fetchPowerSnapshot(kingdom: number): Promise<PowerSnapshot
   const response = await fetch(
     `https://mightpulse.com/api/kingdoms/${kingdom}/ingame-ranks`,
     {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "kingshot-stratforge-bot/1.0",
+      },
       signal: AbortSignal.timeout(30_000),
     },
   );
