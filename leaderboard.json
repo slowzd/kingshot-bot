@@ -2,151 +2,151 @@
   "version": 2,
   "kingdom": 2426,
   "weekStart": "2026-11-02T01:00:00.000Z",
-  "updates": 2,
-  "lastHour": "2026-11-03T01",
+  "updates": 3,
+  "lastHour": "2026-11-04T01",
   "finalPosted": false,
   "alliances": [
     {
       "id": 243500085,
       "tag": "WTR",
       "name": "Winterfell",
-      "totalPower": 9404864208,
-      "observations": 2
+      "totalPower": 14279810691,
+      "observations": 3
     },
     {
       "id": 243500078,
       "tag": "WIN",
       "name": "Winners",
-      "totalPower": 9418478025,
-      "observations": 2
+      "totalPower": 14253496645,
+      "observations": 3
     },
     {
       "id": 243500008,
       "tag": "RxR",
       "name": "EagleOut",
-      "totalPower": 8704373698,
-      "observations": 2
+      "totalPower": 13133808881,
+      "observations": 3
     },
     {
       "id": 243500004,
       "tag": "CLM",
       "name": "CalmDown",
-      "totalPower": 8149716192,
-      "observations": 2
+      "totalPower": 12308791260,
+      "observations": 3
     },
     {
       "id": 243500045,
       "tag": "SAO",
       "name": "StrongerAsOne",
-      "totalPower": 5866749717,
-      "observations": 2
+      "totalPower": 8857007039,
+      "observations": 3
     },
     {
       "id": 243500113,
       "tag": "ZYN",
       "name": "ZYRON",
-      "totalPower": 4737474727,
-      "observations": 2
+      "totalPower": 7088357374,
+      "observations": 3
     },
     {
       "id": 243500086,
       "tag": "WRS",
       "name": "WarriorsS",
-      "totalPower": 4471008527,
-      "observations": 2
+      "totalPower": 6803748158,
+      "observations": 3
     },
     {
       "id": 243500119,
       "tag": "Win",
       "name": "Win",
-      "totalPower": 4222537220,
-      "observations": 2
+      "totalPower": 6371835561,
+      "observations": 3
     },
     {
       "id": 243500002,
       "tag": "STC",
       "name": "Sthtoconsider",
-      "totalPower": 4171817717,
-      "observations": 2
+      "totalPower": 6333307115,
+      "observations": 3
     },
     {
       "id": 243500353,
       "tag": "BET",
       "name": "Besties",
-      "totalPower": 4122008792,
-      "observations": 2
+      "totalPower": 6236653990,
+      "observations": 3
     },
     {
       "id": 243500746,
       "tag": "LFG",
       "name": "BestAlliance",
-      "totalPower": 3167818844,
-      "observations": 2
+      "totalPower": 4783066029,
+      "observations": 3
     },
     {
       "id": 243500023,
       "tag": "RBL",
       "name": "REBELS",
-      "totalPower": 1732025692,
-      "observations": 2
+      "totalPower": 2747949539,
+      "observations": 3
     },
     {
       "id": 243500016,
       "tag": "Clm",
       "name": "CLMacademy",
-      "totalPower": 1306662855,
-      "observations": 2
+      "totalPower": 1967007115,
+      "observations": 3
     },
     {
       "id": 243500248,
       "tag": "bet",
       "name": "BestAcademy",
-      "totalPower": 1265477925,
-      "observations": 2
+      "totalPower": 1885889916,
+      "observations": 3
     },
     {
       "id": 243500017,
       "tag": "Sao",
       "name": "SAOAcademie",
-      "totalPower": 1267674370,
-      "observations": 2
+      "totalPower": 1910038287,
+      "observations": 3
     },
     {
       "id": 243500643,
       "tag": "VHh",
       "name": "AlwaysACTIVE",
-      "totalPower": 908126276,
-      "observations": 2
+      "totalPower": 1374285113,
+      "observations": 3
     },
     {
       "id": 243500518,
       "tag": "NAT",
       "name": "ESPAÑA",
-      "totalPower": 817357186,
-      "observations": 2
+      "totalPower": 1235896386,
+      "observations": 3
     },
     {
       "id": 243500915,
       "tag": "wtr",
       "name": "FIGHTER",
-      "totalPower": 605345812,
-      "observations": 2
+      "totalPower": 913179161,
+      "observations": 3
     },
     {
       "id": 243500525,
       "tag": "rxr",
       "name": "RxR×Academy",
-      "totalPower": 562065168,
-      "observations": 2
+      "totalPower": 845466091,
+      "observations": 3
     },
     {
       "id": 243500231,
       "tag": "THs",
       "name": "RägNärøK",
-      "totalPower": 532799205,
-      "observations": 2
+      "totalPower": 800517353,
+      "observations": 3
     }
   ],
-  "lastPostedAt": "2026-11-03T03:01:19.827Z",
-  "lastApiCapturedAt": "2026-11-03T01:21:38.795Z"
+  "lastPostedAt": "2026-11-04T03:01:21.866Z",
+  "lastApiCapturedAt": "2026-11-04T01:21:43.926Z"
 }
