@@ -1,3 +1,4 @@
+import type { APIEmbed } from "discord.js";
 import type { PowerSnapshot } from "./mightpulse.ts";
 import { cumulativeRanking, type WeekStandings } from "./standings.ts";
 import { formatUtc, weekFinal } from "./time.ts";
@@ -90,6 +91,44 @@ export function weeklyFinalMessage(week: WeekStandings): string {
     "-# Average observed daily power",
     ...cumulativeLines(week),
   ].join("\n");
+}
+
+const EMBED_COLOR = 0x9b59b6;
+
+/** Converts a leaderboard message into a spaced purple embed; the first heading becomes the title. */
+export function leaderboardEmbed(message: string): APIEmbed {
+  const lines = message.split("\n");
+  const titleIndex = lines.findIndex((line) => line.startsWith("## "));
+  const intro =
+    titleIndex > 0
+      ? lines.slice(0, titleIndex).filter((line) => line.trim())
+      : [];
+  const body = titleIndex >= 0 ? lines.slice(titleIndex + 1) : lines;
+  let footerText: string | undefined;
+  const description: string[] = intro.length
+    ? [...intro.map((line) => `**${line}**`), ""]
+    : [];
+  for (const line of body) {
+    const update = /^-# (Update .+)$/.exec(line);
+    if (update) {
+      footerText = update[1];
+    } else if (line.startsWith("## ")) {
+      if (description.at(-1) !== "") description.push("");
+      description.push(`### ${line.slice(3)}`);
+    } else if (line.startsWith("> ")) {
+      if (description.at(-1) !== "") description.push("");
+      description.push(`*${line.slice(2)}*`);
+    } else {
+      description.push(line);
+    }
+  }
+  while (description.at(-1) === "") description.pop();
+  return {
+    color: EMBED_COLOR,
+    ...(titleIndex >= 0 ? { title: lines[titleIndex].slice(3) } : {}),
+    description: description.join("\n"),
+    ...(footerText ? { footer: { text: footerText } } : {}),
+  };
 }
 
 export function splitMessage(message: string): string[] {

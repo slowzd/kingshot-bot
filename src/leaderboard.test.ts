@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test, type TestContext } from "node:test";
-import { dailyMessage, splitMessage, weeklyFinalMessage } from "./format.ts";
+import { dailyMessage, leaderboardEmbed, splitMessage, weeklyFinalMessage } from "./format.ts";
 import { runDailyUpdate } from "./daily.ts";
 import { parsePowerSnapshot, type PowerSnapshot } from "./mightpulse.ts";
 import { loadSnapshotLog } from "./snapshot-log.ts";
@@ -399,6 +399,29 @@ test("message shows top 10 power and cumulative ranking within Discord limits", 
     return dailyMessage(current, week, date).split("\n").at(-1);
   });
   assert.ok(new Set(quotesAcrossAWeek).size > 1);
+});
+
+test("leaderboard messages convert to spaced purple embeds", () => {
+  const ids = Array.from({ length: 12 }, (_, index) => index + 1);
+  const current = snapshot(ids);
+  const hour = new Date("2026-10-13T01:01:00Z");
+  const week = addUpdate(createWeek(2426, hour), current, hour);
+  const message = dailyMessage(current, week, hour);
+  const daily = leaderboardEmbed(`Manually pushed to correct error.\n\n${message}`);
+  assert.equal(daily.color, 0x9b59b6);
+  assert.equal(daily.title, "Today's Alliance Power - Top 10");
+  assert.deepEqual(daily.footer, { text: "Update Tue 13 Oct 01:01 UTC" });
+  assert.ok(daily.description!.startsWith("**Manually pushed to correct error.**\n\n**#1** "));
+  assert.ok(daily.description!.includes("\n\n### Current Average Power Ranking\n"));
+  assert.match(daily.description!, /\n\n\*.+\*$/);
+  assert.ok(!daily.description!.includes("## Today's"));
+  assert.ok(!daily.description!.includes("-# Update"));
+  assert.equal(daily.description!.match(/^\*\*#\d+\*\* /gm)?.length, 20);
+
+  const weekly = leaderboardEmbed(weeklyFinalMessage(week));
+  assert.equal(weekly.title, "🏆 Weekly Cumulative Ranking");
+  assert.equal(weekly.footer, undefined);
+  assert.ok(weekly.description!.startsWith("-# "));
 });
 
 test("Monday 00:01 posts only the weekly cumulative ranking and 01:01 starts a new daily week", async (t) => {

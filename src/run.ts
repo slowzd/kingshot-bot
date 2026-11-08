@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { sendDiscordMessage } from "./discord.ts";
 import { runDailyUpdate } from "./daily.ts";
+import { leaderboardEmbed } from "./format.ts";
 import { fetchPowerSnapshot } from "./mightpulse.ts";
 
 try {
@@ -48,7 +49,7 @@ const result = await runDailyUpdate({
       console.log(`${content}\n`);
       return;
     }
-    const id = await sendDiscordMessage(token, channelId, content);
+    const id = await sendDiscordMessage(token, channelId, { embeds: [leaderboardEmbed(content)] });
     console.log(`Posted Discord message ${id}.`);
   },
   dryRun,
