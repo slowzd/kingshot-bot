@@ -13,6 +13,10 @@ on:
         description: "UTC date to correct (YYYY-MM-DD); prevents a queued correction from targeting another day"
         type: string
         default: ""
+      test_gift_codes:
+        description: "Post a gift-code test to the test channel without changing saved state"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -23,6 +27,7 @@ concurrency:
 
 jobs:
   post:
+    if: ${{ inputs.test_gift_codes != true }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -108,3 +113,19 @@ jobs:
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit-tree "$tree" "${parent[@]}" -m "Update standings")
           git push origin "$commit:refs/heads/$STATE_BRANCH"
+
+  test-gift-codes:
+    if: ${{ inputs.test_gift_codes == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Post test gift codes
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CODES_CHANNEL_ID: "1561449272690344068"
+          GIFT_CODES_STATE_FILE: ${{ runner.temp }}/gift-codes-test.json
+        run: node src/run-gift-codes.ts

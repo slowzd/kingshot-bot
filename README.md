@@ -38,6 +38,8 @@ The workflow defaults to the existing codes channel `1568946919567392908`. To ch
 
 For a local preview, set `DISCORD_CODES_CHANNEL_ID` in your environment and run `node src/run-gift-codes.ts --dry-run`. A preview does not post or save state. Without `--dry-run`, the command posts changed lists and saves to `state/gift-codes.json` (override with `GIFT_CODES_STATE_FILE`); local state is not automatically synced with GitHub.
 
+To test the GitHub workflow, select **Actions → Daily Alliance Leaderboard → Run workflow → test_gift_codes**. The test posts the current codes to channel `1561449272690344068` using temporary state; it does not run the leaderboard or read or change the production state branch. Each selected test run posts once, independently of whether production codes have changed.
+
 ## GitHub Actions setup
 The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hourly-leaderboard.yml).
 
