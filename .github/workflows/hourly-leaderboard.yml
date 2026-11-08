@@ -30,6 +30,7 @@ jobs:
       STATE_BRANCH: leaderboard-state
       STATE_FILE: state/leaderboard.json
       SNAPSHOT_FILE: state/snapshot.ts
+      GIFT_CODES_STATE_FILE: state/gift-codes.json
 
     steps:
       - uses: actions/checkout@v4
@@ -47,9 +48,14 @@ jobs:
           git ls-remote --exit-code --heads origin "$STATE_BRANCH" > /dev/null || status=$?
           if [ "$status" -eq 0 ]; then
             git fetch --depth=1 origin "$STATE_BRANCH:refs/remotes/origin/$STATE_BRANCH"
-            git show "origin/$STATE_BRANCH:leaderboard.json" > "$STATE_FILE"
+            if git cat-file -e "origin/$STATE_BRANCH:leaderboard.json" 2> /dev/null; then
+              git show "origin/$STATE_BRANCH:leaderboard.json" > "$STATE_FILE"
+            fi
             if git cat-file -e "origin/$STATE_BRANCH:snapshot.ts" 2> /dev/null; then
               git show "origin/$STATE_BRANCH:snapshot.ts" > "$SNAPSHOT_FILE"
+            fi
+            if git cat-file -e "origin/$STATE_BRANCH:gift-codes.json" 2> /dev/null; then
+              git show "origin/$STATE_BRANCH:gift-codes.json" > "$GIFT_CODES_STATE_FILE"
             fi
           elif [ "$status" -eq 2 ]; then
             echo "No saved standings yet; starting a new week."
@@ -70,21 +76,30 @@ jobs:
             node src/run.ts
           fi
 
-      - name: Save standings and snapshot log
+      - name: Check active gift codes
+        if: always() && steps.load.outcome == 'success'
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CODES_CHANNEL_ID: ${{ vars.DISCORD_CODES_CHANNEL_ID || '1568946919567392908' }}
+        run: node src/run-gift-codes.ts
+
+      - name: Save standings, snapshot log and gift codes
         # Also runs after a partial failure so standings that were already posted are saved.
         if: always() && steps.load.outcome == 'success'
         run: |
           set -euo pipefail
-          [ -f "$STATE_FILE" ] || exit 0
-          entries=$(printf '100644 blob %s\tleaderboard.json\n' "$(git hash-object -w "$STATE_FILE")")
-          if [ -f "$SNAPSHOT_FILE" ]; then
-            entries+=$'\n'$(printf '100644 blob %s\tsnapshot.ts\n' "$(git hash-object -w "$SNAPSHOT_FILE")")
-          fi
-          tree=$(printf '%s\n' "$entries" | git mktree)
+          entries=()
+          for file in "$STATE_FILE" "$SNAPSHOT_FILE" "$GIFT_CODES_STATE_FILE"; do
+            if [ -f "$file" ]; then
+              entries+=("$(printf '100644 blob %s\t%s' "$(git hash-object -w "$file")" "$(basename "$file")")")
+            fi
+          done
+          [ "${#entries[@]}" -gt 0 ] || exit 0
+          tree=$(printf '%s\n' "${entries[@]}" | git mktree)
           parent=()
           if git rev-parse -q --verify "refs/remotes/origin/$STATE_BRANCH" > /dev/null; then
             if [ "$(git rev-parse "origin/$STATE_BRANCH^{tree}")" = "$tree" ]; then
-              echo "Standings unchanged."
+              echo "Saved bot state unchanged."
               exit 0
             fi
             parent=(-p "origin/$STATE_BRANCH")

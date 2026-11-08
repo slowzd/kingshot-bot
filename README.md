@@ -26,6 +26,18 @@ The weekly summary is separate from daily slot protection: it neither checks nor
 
 If Monday's 00:01 run is missed, the next run posts the saved weekly summary first. If a daily update is also eligible, it then posts separately and starts the new week. Only the daily update adds power samples. Failed weekly deliveries can be retried; a successfully saved summary is not repeated if the following daily API request fails.
 
+## Gift-code updates
+
+Every workflow run also checks the public feed used by [Kingshot Atlas's gift-code page](https://ks-atlas.com/tools/gift-codes): `https://kingshot-atlas.onrender.com/api/v1/player-link/gift-codes`. No Atlas account or API key is required. The check runs even when the leaderboard is already posted, waiting for fresh data, or fails.
+
+The bot posts a spacious purple embed in `#codes` on the first successful check, then only when active codes are added or removed, or their expiry details change. It includes the full active list and Android/iOS redemption instructions. Reordering, duplicate identical entries, and unrelated source metadata do not trigger another message. Codes marked expired or whose expiry time has passed are excluded; if the last code expires, one update says there are no active codes.
+
+Duplicate protection is stored in `gift-codes.json` on the existing `leaderboard-state` branch and survives separate workflow runs. API failures, malformed data, and failed Discord delivery do not replace the last successfully posted list. The state-saving step runs after partial failures to preserve whichever updates succeeded. As with leaderboard posts, delivery and pushing the state branch are not atomic: a state-save/push failure after successful delivery can cause a duplicate on retry.
+
+The workflow defaults to the existing codes channel `1568946919567392908`. To change the destination, set the repository **Actions variable** `DISCORD_CODES_CHANNEL_ID`. The existing `DISCORD_TOKEN` secret is reused; the bot needs **View Channel**, **Send Messages**, and **Embed Links** in the codes channel. This scheduled feature does not require Copilot authentication or the always-on slash-command process.
+
+For a local preview, set `DISCORD_CODES_CHANNEL_ID` in your environment and run `node src/run-gift-codes.ts --dry-run`. A preview does not post or save state. Without `--dry-run`, the command posts changed lists and saves to `state/gift-codes.json` (override with `GIFT_CODES_STATE_FILE`); local state is not automatically synced with GitHub.
+
 ## GitHub Actions setup
 The workflow is [.github/workflows/hourly-leaderboard.yml](.github/workflows/hourly-leaderboard.yml).
 
