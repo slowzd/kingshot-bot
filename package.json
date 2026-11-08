@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "start": "node src/run.ts",
+    "bot": "node src/admin.ts",
     "preview": "node src/run.ts --dry-run",
     "correct": "node src/correct.ts",
     "check": "tsc --noEmit",
     "test": "node --test src/*.test.ts"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^1.0.29",
+    "discord.js": "^14.21.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

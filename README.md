@@ -75,9 +75,10 @@ Mightpulse decides when it captures data; the bot waits rather than presenting a
 ## Local commands
 Requires Node.js 24 or newer. Put the same variables in a local `.env` file.
 
-- `npm install` – installs the TypeScript tooling (only needed for `check`).
+- `npm install` – installs the bot dependencies.
 - `npm run preview` – checks the daily schedule and, if due, fetches the live API and prints the message without posting or saving.
 - `npm start` – checks the daily schedule and, if due, posts to Discord and saves standings to `state/leaderboard.json` and the snapshot log to `state/snapshot.ts`. These local files are not automatically synced with GitHub's state branch.
+- `npm run bot` – starts the always-on Discord command bot. It registers server-specific slash commands at startup and requires `DISCORD_CLIENT_ID` and `DISCORD_GUILD_ID` in addition to `DISCORD_TOKEN`.
 - `npm run correct` – requests a correction of today's automatic post through GitHub Actions, using the shared saved standings. See below.
 - `npm start -- --force` – sends a real Discord test post immediately to test channel `1561449272690344068`, ignoring `DISCORD_CHANNEL_ID` and bypassing daily slot and source freshness guards. Does not save power samples, standings, the posting timestamp, or snapshot history, so the normal daily schedule is unaffected. Repeated calls send repeated test posts. The bot needs View Channel and Send Messages permissions in the test channel.
 - `npm run preview -- --force` – bypasses daily slot and source freshness guards to print a preview without sending to Discord or saving anything.
@@ -85,6 +86,38 @@ Requires Node.js 24 or newer. Put the same variables in a local `.env` file.
 - `npm run check` – TypeScript type check.
 
 Normal posts still use `DISCORD_CHANNEL_ID` (production channel `1559288525201866814`); keep that value in the GitHub Actions secret and local `.env`.
+
+### Server management commands
+
+The always-on command bot adds these guild-specific slash commands:
+
+- `/role assign member role`
+- `/role remove member role`
+- `/channel rename channel name`
+- `/channel move channel position` (positions start at `0`)
+- `/channel create name type category` (`category` is optional; types are text, voice, or category)
+- `/request description` – describe a server task in plain language. The bot privately previews channel create/rename/move, role assign/remove, and message-post actions; only the requester can approve the plan, and it expires after five minutes.
+
+Set `DISCORD_CLIENT_ID` to the application ID and `DISCORD_GUILD_ID` to the server ID in the environment where `npm run bot` runs. Invite the existing bot application to the server with the `bot` and `applications.commands` scopes and grant **Manage Roles** and **Manage Channels**. Put the bot's highest role above roles it should assign or remove. The commands require the invoking member to have the matching management permission; non-administrators can only manage roles below their highest role.
+
+`/request` is restricted to server administrators. It uses the GitHub Copilot SDK, so the bot host must have Copilot authentication configured and access to a Copilot subscription. The request text and channel/role names and IDs are sent to Copilot to produce a plan; the model has no Discord or local-system tools. Plans cannot delete channels, change permissions, or perform actions outside the listed allowlist. Role changes require an explicit member mention, and message posts suppress all mentions. The bot rechecks permissions and targets before approval and execution; a failed multi-action request stops and reports any earlier completed actions.
+
+Authenticate on the bot host as the same OS user that runs the bot; signing in to Copilot in VS Code does not by itself authenticate this separate process:
+
+```powershell
+npm install -g @github/copilot
+copilot
+```
+
+Inside the Copilot CLI, enter `/login` and complete the GitHub sign-in with an account that has Copilot access. Exit the CLI, then restart `npm run bot`. If you set `COPILOT_HOME`, use the same value for the CLI and the bot so they use the same configuration directory.
+
+The planner uses the SDK's `copilot-cli` mode to read credentials from the OS credential store. It explicitly disables all tools, skills, memory, file hooks, and local instruction discovery. Do not switch it to `empty` mode for CLI sign-in: that mode disables credential-store access in the installed SDK. After code or authentication changes, stop the existing bot with Ctrl+C in its terminal and start it again; an already-running process does not reload them. If `copilot` reports that the CLI was not found, the VS Code launcher alone is not sufficient: install the standalone CLI above and reopen your terminal.
+
+For an unattended host, you can instead set `COPILOT_GITHUB_TOKEN` in the bot's environment or local `.env` to a fine-grained personal access token with the account-level **Copilot Requests** permission. Do not use the classic Actions token described below or the Discord bot token, and never commit or share this credential. Token environment variables take precedence over stored CLI credentials. `/request` checks authentication before planning and reports missing authentication without making changes.
+
+The model response schema uses a provider-compatible subset of JSON Schema. The bot independently validates all limits before preview or execution: at most eight actions, a 500-character summary, 100-character names/references, positions from 0 to 500, valid member IDs, and messages of at most 2000 characters.
+
+The GitHub Actions workflow is short-lived and does not run this command bot. Run `npm run bot` on an always-on host (such as a VPS or service that supports persistent Node.js processes) to receive interactions; keep the existing Actions workflow for scheduled leaderboard posts.
 
 ### Correct today's automatic post
 
