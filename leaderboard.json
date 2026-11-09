@@ -1,159 +1,152 @@
 {
   "version": 2,
   "kingdom": 2426,
-  "weekStart": "2026-11-02T01:00:00.000Z",
-  "updates": 7,
-  "lastHour": "2026-11-08T01",
-  "finalPosted": true,
+  "weekStart": "2026-11-09T01:00:00.000Z",
+  "updates": 1,
+  "lastHour": "2026-11-09T01",
+  "finalPosted": false,
   "alliances": [
-    {
-      "id": 243500085,
-      "tag": "WTR",
-      "name": "Winterfell",
-      "totalPower": 33777965905,
-      "observations": 7
-    },
     {
       "id": 243500078,
       "tag": "WIN",
       "name": "Winners",
-      "totalPower": 34078091587,
-      "observations": 7
+      "totalPower": 5445073192,
+      "observations": 1
+    },
+    {
+      "id": 243500085,
+      "tag": "WTR",
+      "name": "Winterfell",
+      "totalPower": 5398607174,
+      "observations": 1
     },
     {
       "id": 243500008,
       "tag": "RxR",
       "name": "FAFO",
-      "totalPower": 30863621276,
-      "observations": 7
-    },
-    {
-      "id": 243500004,
-      "tag": "CLM",
-      "name": "CalmDown",
-      "totalPower": 29107120568,
-      "observations": 7
+      "totalPower": 4889746966,
+      "observations": 1
     },
     {
       "id": 243500045,
       "tag": "SAO",
       "name": "StrongerAsOne",
-      "totalPower": 21180123970,
-      "observations": 7
-    },
-    {
-      "id": 243500113,
-      "tag": "ZYN",
-      "name": "ZYRON",
-      "totalPower": 16825805953,
-      "observations": 7
+      "totalPower": 3231258088,
+      "observations": 1
     },
     {
       "id": 243500086,
       "tag": "WRS",
       "name": "WarriorsS",
-      "totalPower": 16715420493,
-      "observations": 7
+      "totalPower": 2764025878,
+      "observations": 1
     },
     {
-      "id": 243500119,
-      "tag": "Win",
-      "name": "Win",
-      "totalPower": 14955374800,
-      "observations": 7
+      "id": 243500113,
+      "tag": "ZYN",
+      "name": "ZYRON",
+      "totalPower": 2490215802,
+      "observations": 1
+    },
+    {
+      "id": 243500004,
+      "tag": "CLM",
+      "name": "CalmDown",
+      "totalPower": 2395264117,
+      "observations": 1
     },
     {
       "id": 243500002,
       "tag": "STC",
       "name": "Sthtoconsider",
-      "totalPower": 15343329893,
-      "observations": 7
+      "totalPower": 2315362503,
+      "observations": 1
     },
     {
       "id": 243500353,
       "tag": "BET",
       "name": "Besties",
-      "totalPower": 14867023421,
-      "observations": 7
+      "totalPower": 2225026701,
+      "observations": 1
+    },
+    {
+      "id": 243500119,
+      "tag": "Win",
+      "name": "Win",
+      "totalPower": 2087680451,
+      "observations": 1
     },
     {
       "id": 243500746,
       "tag": "LFG",
       "name": "BestAlliance",
-      "totalPower": 11615374850,
-      "observations": 7
+      "totalPower": 1756279078,
+      "observations": 1
     },
     {
       "id": 243500023,
       "tag": "RBL",
       "name": "REBELS",
-      "totalPower": 7063937504,
-      "observations": 7
+      "totalPower": 1095700870,
+      "observations": 1
     },
     {
       "id": 243500016,
       "tag": "Clm",
       "name": "CLMacademy",
-      "totalPower": 4684828694,
-      "observations": 7
+      "totalPower": 664752881,
+      "observations": 1
     },
     {
       "id": 243500248,
       "tag": "bet",
       "name": "BestAcademy",
-      "totalPower": 4483273979,
-      "observations": 7
+      "totalPower": 647408115,
+      "observations": 1
     },
     {
       "id": 243500017,
       "tag": "Sao",
       "name": "SAOAcademie",
-      "totalPower": 4442402754,
-      "observations": 7
+      "totalPower": 643877371,
+      "observations": 1
     },
     {
       "id": 243500643,
       "tag": "VHh",
       "name": "AlwaysACTIVE",
-      "totalPower": 3259752081,
-      "observations": 7
+      "totalPower": 472579611,
+      "observations": 1
     },
     {
       "id": 243500518,
       "tag": "NAT",
       "name": "ESPAÑA",
-      "totalPower": 2945526807,
-      "observations": 7
+      "totalPower": 435663237,
+      "observations": 1
     },
     {
       "id": 243500915,
       "tag": "wtr",
       "name": "FIGHTER",
-      "totalPower": 2175032327,
-      "observations": 7
+      "totalPower": 331890581,
+      "observations": 1
+    },
+    {
+      "id": 243500437,
+      "tag": "MVL",
+      "name": "Marvel",
+      "totalPower": 292066737,
+      "observations": 1
     },
     {
       "id": 243500525,
       "tag": "rxr",
       "name": "RxR×Academy",
-      "totalPower": 1991061986,
-      "observations": 7
-    },
-    {
-      "id": 243500231,
-      "tag": "THs",
-      "name": "RägNärøK",
-      "totalPower": 1070606901,
-      "observations": 4
-    },
-    {
-      "id": 243500325,
-      "tag": "KvK",
-      "name": "FAFO",
-      "totalPower": 1909041145,
-      "observations": 3
+      "totalPower": 291050631,
+      "observations": 1
     }
   ],
-  "lastPostedAt": "2026-11-08T03:01:18.227Z",
-  "lastApiCapturedAt": "2026-11-08T01:17:56.486Z"
+  "lastPostedAt": "2026-11-09T03:01:18.474Z",
+  "lastApiCapturedAt": "2026-11-09T01:21:59.135Z"
 }
