@@ -46,11 +46,18 @@ export function parsePowerSnapshot(data: unknown, kingdom: number): PowerSnapsho
 
   const ids = new Set<number>();
   const ranks = new Set<number>();
-  const alliances = board.rows.map((row: unknown): Alliance => {
+  const alliances: Alliance[] = [];
+  for (const row of board.rows) {
+    if (!isRecord(row) || !isPositiveInteger(row.rank)) {
+      throw new Error("Mightpulse returned an invalid Alliance Power row.");
+    }
+    if (ranks.has(row.rank)) {
+      throw new Error("Mightpulse returned duplicate alliances or ranks.");
+    }
+    ranks.add(row.rank);
+    if (row.rank > TRACKED_ALLIANCE_LIMIT) continue;
     if (
-      !isRecord(row) ||
       !isPositiveInteger(row.aid) ||
-      !isPositiveInteger(row.rank) ||
       row.kid !== kingdom ||
       typeof row.name !== "string" ||
       !row.name.trim() ||
@@ -61,13 +68,10 @@ export function parsePowerSnapshot(data: unknown, kingdom: number): PowerSnapsho
     ) {
       throw new Error("Mightpulse returned an invalid Alliance Power row.");
     }
-    if (ids.has(row.aid) || ranks.has(row.rank)) {
-      throw new Error("Mightpulse returned duplicate alliances or ranks.");
-    }
+    if (ids.has(row.aid)) throw new Error("Mightpulse returned duplicate alliances or ranks.");
     ids.add(row.aid);
-    ranks.add(row.rank);
-    return { id: row.aid, rank: row.rank, tag: row.abbr.trim(), name: row.name.trim(), power: row.score };
-  });
+    alliances.push({ id: row.aid, rank: row.rank, tag: row.abbr.trim(), name: row.name.trim(), power: row.score });
+  }
 
   alliances.sort((a, b) => a.rank - b.rank);
   return { kingdom, capturedAt: new Date(board.captured_at * 1000), alliances };
