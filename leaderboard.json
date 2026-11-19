@@ -2,151 +2,151 @@
   "version": 2,
   "kingdom": 2426,
   "weekStart": "2026-11-16T01:00:00.000Z",
-  "updates": 3,
-  "lastHour": "2026-11-18T01",
+  "updates": 4,
+  "lastHour": "2026-11-19T01",
   "finalPosted": false,
   "alliances": [
     {
       "id": 243500078,
       "tag": "WIN",
       "name": "Winners",
-      "totalPower": 17780049881,
-      "observations": 3
+      "totalPower": 23764267496,
+      "observations": 4
     },
     {
       "id": 243500085,
       "tag": "WTR",
       "name": "Winterfell",
-      "totalPower": 17220455346,
-      "observations": 3
+      "totalPower": 23025153101,
+      "observations": 4
     },
     {
       "id": 243500008,
       "tag": "RxR",
       "name": "FAFO",
-      "totalPower": 16169742639,
-      "observations": 3
+      "totalPower": 21486705457,
+      "observations": 4
     },
     {
       "id": 243500086,
       "tag": "WRS",
       "name": "WarriorsS",
-      "totalPower": 10896971130,
-      "observations": 3
+      "totalPower": 14403930786,
+      "observations": 4
     },
     {
       "id": 243500113,
       "tag": "ZYN",
       "name": "Summerfell",
-      "totalPower": 9281407952,
-      "observations": 3
+      "totalPower": 12469005342,
+      "observations": 4
     },
     {
       "id": 243500045,
       "tag": "SAO",
       "name": "StrongerAsOne",
-      "totalPower": 9438447731,
-      "observations": 3
+      "totalPower": 12959086587,
+      "observations": 4
     },
     {
       "id": 243500004,
       "tag": "CLM",
       "name": "CalmDown",
-      "totalPower": 7730267291,
-      "observations": 3
+      "totalPower": 10015105123,
+      "observations": 4
     },
     {
       "id": 243500353,
       "tag": "BET",
       "name": "Besties",
-      "totalPower": 7942044109,
-      "observations": 3
+      "totalPower": 10691178375,
+      "observations": 4
     },
     {
       "id": 243500119,
       "tag": "win",
       "name": "WINAcademy",
-      "totalPower": 7602963168,
-      "observations": 3
+      "totalPower": 10140939079,
+      "observations": 4
     },
     {
       "id": 243500746,
       "tag": "LFG",
       "name": "BestAlliance",
-      "totalPower": 6348250727,
-      "observations": 3
+      "totalPower": 8590727668,
+      "observations": 4
     },
     {
       "id": 243500023,
       "tag": "RBL",
       "name": "REBELS",
-      "totalPower": 4512704441,
-      "observations": 3
+      "totalPower": 6119811308,
+      "observations": 4
     },
     {
       "id": 243500248,
       "tag": "bet",
       "name": "BestAcademy",
-      "totalPower": 2499198406,
-      "observations": 3
+      "totalPower": 3312331073,
+      "observations": 4
     },
     {
       "id": 243500017,
       "tag": "Sao",
       "name": "SAOAcademie",
-      "totalPower": 1194160795,
-      "observations": 3
+      "totalPower": 1502689399,
+      "observations": 4
     },
     {
       "id": 243500643,
       "tag": "VHh",
       "name": "AlwaysACTIVE",
-      "totalPower": 1427683894,
-      "observations": 3
+      "totalPower": 1886630564,
+      "observations": 4
     },
     {
       "id": 243500437,
       "tag": "MVL",
       "name": "Marvel",
-      "totalPower": 1453269412,
-      "observations": 3
+      "totalPower": 1945960332,
+      "observations": 4
     },
     {
       "id": 243500915,
       "tag": "wtr",
       "name": "FIGHTER",
-      "totalPower": 1473708420,
-      "observations": 3
+      "totalPower": 1995318451,
+      "observations": 4
     },
     {
       "id": 243500518,
       "tag": "NAT",
       "name": "ESPAÑA",
-      "totalPower": 1392222340,
-      "observations": 3
+      "totalPower": 1860993985,
+      "observations": 4
     },
     {
       "id": 243500525,
       "tag": "rxr",
       "name": "RxR×Academy",
-      "totalPower": 1542148604,
-      "observations": 3
+      "totalPower": 2350703853,
+      "observations": 4
     },
     {
       "id": 243500234,
       "tag": "RMP",
       "name": "Russianmachine",
-      "totalPower": 1018275148,
-      "observations": 3
+      "totalPower": 1368799810,
+      "observations": 4
     },
     {
       "id": 243500349,
       "tag": "DXA",
       "name": "Dutchwar",
-      "totalPower": 1024713596,
-      "observations": 3
+      "totalPower": 1477098872,
+      "observations": 4
     }
   ],
-  "lastPostedAt": "2026-11-18T03:01:21.135Z",
-  "lastApiCapturedAt": "2026-11-18T02:13:17.102Z"
+  "lastPostedAt": "2026-11-19T03:01:22.468Z",
+  "lastApiCapturedAt": "2026-11-19T02:06:50.109Z"
 }
