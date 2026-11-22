@@ -2,154 +2,302 @@
 export const snapshotLog = {
   "kingdom": 2426,
   "latest": {
-    "update": "2026-11-21T01:01:00.000Z",
-    "fetchedAt": "2026-11-21T04:01:18.915Z",
-    "apiCapturedAt": "2026-11-21T02:13:24.060Z",
-    "apiAgeMinutes": 108,
+    "update": "2026-11-22T01:01:00.000Z",
+    "fetchedAt": "2026-11-22T02:01:20.056Z",
+    "apiCapturedAt": "2026-11-22T01:04:57.043Z",
+    "apiAgeMinutes": 56,
     "alliances": [
       {
         "rank": 1,
         "id": 243500085,
         "tag": "WTR",
         "name": "Winterfell",
-        "power": 6028574464
+        "power": 6100807668
       },
       {
         "rank": 2,
         "id": 243500078,
         "tag": "WIN",
         "name": "Winners",
-        "power": 5758668720
+        "power": 6004477584
       },
       {
         "rank": 3,
         "id": 243500008,
         "tag": "RxR",
         "name": "FAFO",
-        "power": 5458358867
+        "power": 5946606730
       },
       {
         "rank": 4,
         "id": 243500045,
         "tag": "SAO",
         "name": "StrongerAsOne",
-        "power": 3744398045
+        "power": 3773311337
       },
       {
         "rank": 5,
-        "id": 243500086,
-        "tag": "WRS",
-        "name": "WarriorsS",
-        "power": 3482675230
-      },
-      {
-        "rank": 6,
         "id": 243500113,
         "tag": "ZYN",
         "name": "Summerfell",
-        "power": 3207109763
+        "power": 3264768144
+      },
+      {
+        "rank": 6,
+        "id": 243500086,
+        "tag": "WRS",
+        "name": "WarriorsS",
+        "power": 2996201219
       },
       {
         "rank": 7,
         "id": 243500353,
         "tag": "BET",
         "name": "Besties",
-        "power": 2758268310
+        "power": 2857233955
       },
       {
         "rank": 8,
         "id": 243500119,
         "tag": "win",
         "name": "WINAcademy",
-        "power": 2605688334
+        "power": 2568774077
       },
       {
         "rank": 9,
         "id": 243500746,
         "tag": "LFG",
         "name": "BestAlliance",
-        "power": 2246087998
+        "power": 2224409581
       },
       {
         "rank": 10,
         "id": 243500004,
         "tag": "CLM",
         "name": "CalmDown",
-        "power": 2025253767
+        "power": 1995683676
       },
       {
         "rank": 11,
         "id": 243500023,
         "tag": "RBL",
         "name": "REBELS",
-        "power": 1623134357
+        "power": 1638278739
       },
       {
         "rank": 12,
         "id": 243500248,
         "tag": "bet",
         "name": "BestAcademy",
-        "power": 823501023
+        "power": 794433690
       },
       {
         "rank": 13,
-        "id": 243500525,
-        "tag": "rxr",
-        "name": "RxR×Academy",
-        "power": 767964202
-      },
-      {
-        "rank": 14,
         "id": 243500915,
         "tag": "wtr",
         "name": "FIGHTER",
-        "power": 544728436
+        "power": 555608512
       },
       {
-        "rank": 15,
+        "rank": 14,
         "id": 243500437,
         "tag": "MVL",
         "name": "Marvel",
-        "power": 495954454
+        "power": 539143308
       },
       {
-        "rank": 16,
+        "rank": 15,
         "id": 243500518,
         "tag": "NAT",
         "name": "ESPAÑA",
-        "power": 473232764
+        "power": 472622672
       },
       {
-        "rank": 17,
+        "rank": 16,
         "id": 243500643,
         "tag": "VHh",
         "name": "AlwaysACTIVE",
-        "power": 458253026
+        "power": 461247793
+      },
+      {
+        "rank": 17,
+        "id": 243500525,
+        "tag": "rxr",
+        "name": "RxR×Academy",
+        "power": 429600615
       },
       {
         "rank": 18,
         "id": 243500349,
         "tag": "DXA",
         "name": "Dutchwar",
-        "power": 397510088
+        "power": 363480484
       },
       {
         "rank": 19,
         "id": 243500234,
         "tag": "RMP",
         "name": "Russianmachine",
-        "power": 357804385
+        "power": 357477968
       },
       {
         "rank": 20,
         "id": 243500017,
         "tag": "Sao",
         "name": "SAOAcademie",
-        "power": 310595811
+        "power": 311230743
       }
     ]
   },
   "history": [
+    {
+      "update": "2026-11-22T01:01:00.000Z",
+      "fetchedAt": "2026-11-22T02:01:20.056Z",
+      "apiCapturedAt": "2026-11-22T01:04:57.043Z",
+      "apiAgeMinutes": 56,
+      "alliances": [
+        {
+          "rank": 1,
+          "id": 243500085,
+          "tag": "WTR",
+          "name": "Winterfell",
+          "power": 6100807668
+        },
+        {
+          "rank": 2,
+          "id": 243500078,
+          "tag": "WIN",
+          "name": "Winners",
+          "power": 6004477584
+        },
+        {
+          "rank": 3,
+          "id": 243500008,
+          "tag": "RxR",
+          "name": "FAFO",
+          "power": 5946606730
+        },
+        {
+          "rank": 4,
+          "id": 243500045,
+          "tag": "SAO",
+          "name": "StrongerAsOne",
+          "power": 3773311337
+        },
+        {
+          "rank": 5,
+          "id": 243500113,
+          "tag": "ZYN",
+          "name": "Summerfell",
+          "power": 3264768144
+        },
+        {
+          "rank": 6,
+          "id": 243500086,
+          "tag": "WRS",
+          "name": "WarriorsS",
+          "power": 2996201219
+        },
+        {
+          "rank": 7,
+          "id": 243500353,
+          "tag": "BET",
+          "name": "Besties",
+          "power": 2857233955
+        },
+        {
+          "rank": 8,
+          "id": 243500119,
+          "tag": "win",
+          "name": "WINAcademy",
+          "power": 2568774077
+        },
+        {
+          "rank": 9,
+          "id": 243500746,
+          "tag": "LFG",
+          "name": "BestAlliance",
+          "power": 2224409581
+        },
+        {
+          "rank": 10,
+          "id": 243500004,
+          "tag": "CLM",
+          "name": "CalmDown",
+          "power": 1995683676
+        },
+        {
+          "rank": 11,
+          "id": 243500023,
+          "tag": "RBL",
+          "name": "REBELS",
+          "power": 1638278739
+        },
+        {
+          "rank": 12,
+          "id": 243500248,
+          "tag": "bet",
+          "name": "BestAcademy",
+          "power": 794433690
+        },
+        {
+          "rank": 13,
+          "id": 243500915,
+          "tag": "wtr",
+          "name": "FIGHTER",
+          "power": 555608512
+        },
+        {
+          "rank": 14,
+          "id": 243500437,
+          "tag": "MVL",
+          "name": "Marvel",
+          "power": 539143308
+        },
+        {
+          "rank": 15,
+          "id": 243500518,
+          "tag": "NAT",
+          "name": "ESPAÑA",
+          "power": 472622672
+        },
+        {
+          "rank": 16,
+          "id": 243500643,
+          "tag": "VHh",
+          "name": "AlwaysACTIVE",
+          "power": 461247793
+        },
+        {
+          "rank": 17,
+          "id": 243500525,
+          "tag": "rxr",
+          "name": "RxR×Academy",
+          "power": 429600615
+        },
+        {
+          "rank": 18,
+          "id": 243500349,
+          "tag": "DXA",
+          "name": "Dutchwar",
+          "power": 363480484
+        },
+        {
+          "rank": 19,
+          "id": 243500234,
+          "tag": "RMP",
+          "name": "Russianmachine",
+          "power": 357477968
+        },
+        {
+          "rank": 20,
+          "id": 243500017,
+          "tag": "Sao",
+          "name": "SAOAcademie",
+          "power": 311230743
+        }
+      ]
+    },
     {
       "update": "2026-11-21T01:01:00.000Z",
       "fetchedAt": "2026-11-21T04:01:18.915Z",
